@@ -4,3 +4,6 @@
 *.xml
 *.xml
 .idea/.name
+.idea/DataMiningTechniques.iml
+.idea/misc.xml
+.idea/workspace.xml
