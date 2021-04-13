@@ -8,6 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn import tree
+from tqdm import tqdm
 import graphviz
 
 import matplotlib.pyplot as plt
@@ -115,15 +116,28 @@ def regressionTree(data, parameters=None):
     data_splits_scaled = scaleData(data_splits, binary_cols)
     X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
 
-    clf = DecisionTreeRegressor(random_state=1)
-    clf = clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_val)
 
-    # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
-    # wandb.sklearn.plot_feature_importances(clf, data.columns)
+    metrics_df = pd.DataFrame(columns=['Depth', 'Samples split', 'Samples leaf', 'MAE', 'MSE'])
+    for i in tqdm(range(1,50)):
+        for j in range(2,40):
+            for k in range(1,20):
 
-    print("MSE: ", metrics.mean_squared_error(y_val, y_pred))
-    print("MAE: ", metrics.mean_absolute_error(y_val, y_pred))
+                clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
+                clf = clf.fit(X_train, y_train)
+                y_pred = clf.predict(X_val)
+
+                # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
+                # wandb.sklearn.plot_feature_importances(clf, data.columns)
+
+                MSE = metrics.mean_squared_error(y_val, y_pred)
+                MAE = metrics.mean_absolute_error(y_val, y_pred)
+                metrics_df = metrics_df.append({'Depth':i, 'Samples split':j, 'Samples leaf':k, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
+
+
+    print(metrics_df)
+    print(metrics_df.iloc[metrics_df['MAE'].argmin()])
+    print(metrics_df.iloc[metrics_df['MSE'].argmin()])
+
 
 
     dot_data = tree.export_graphviz(clf, out_file='tree.dot')
