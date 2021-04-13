@@ -1,0 +1,22 @@
+wandb: 
+wandb: Plotting Decision tree.
+Traceback (most recent call last):
+  File "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques/DecisionTree.py", line 126, in <module>
+    regressionTree(df_tab)
+  File "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques/DecisionTree.py", line 92, in regressionTree
+    wandb.sklearn.plot_regressor(clf, X_train, X_test, y_train, y_val, model_name='Decision tree')
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 146, in plot_regressor
+    plot_summary_metrics(model, X_train, y_train, X_test, y_test)
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 293, in plot_summary_metrics
+    wandb.log({"summary_metrics": summary_metrics(model, X, y, X_test, y_test)})
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 252, in summary_metrics
+    round_2(sklearn.metrics.mean_absolute_error(y_test, y_pred))
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\sklearn\utils\validation.py", line 63, in inner_f
+    return f(*args, **kwargs)
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\sklearn\metrics\_regression.py", line 183, in mean_absolute_error
+    y_true, y_pred, multioutput)
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\sklearn\metrics\_regression.py", line 88, in _check_reg_targets
+    check_consistent_length(y_true, y_pred)
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\sklearn\utils\validation.py", line 263, in check_consistent_length
+    " samples: %r" % [int(l) for l in lengths])
+ValueError: Found input variables with inconsistent numbers of samples: [157, 154]
