@@ -99,13 +99,13 @@ X_test_pca = pca.transform(X_test)
 
 # Training the Support Vector Regression model on the Training set
 from sklearn.svm import SVR
-regressor = SVR(kernel='rbf')
+svr_regressor = SVR(kernel='rbf')
 # regressor = SVR(kernel = 'poly')
 
-regressor.fit(X_train_pca, y_train.ravel())
+svr_regressor.fit(X_train_pca, y_train.ravel())
 
 # Prediction evaluation
-y_pred_sc = regressor.predict(X_test_pca)
+y_pred_sc = svr_regressor.predict(X_test_pca)
 y_pred = sc_y.inverse_transform(y_pred_sc.reshape(-1, 1))
 y_true = sc_y.inverse_transform(y_test)
 
@@ -116,6 +116,12 @@ print(f"SVR MAE: {mae}")
 
 bench_model()
 
+
+# Cross-validation
+from sklearn.model_selection import cross_val_score
+accuracies = cross_val_score(estimator=svr_regressor, X=X_train_pca, y=y_train.ravel(), cv=20, scoring='neg_mean_squared_error')
+
+print(-accuracies.mean())   # TODO: Somehow scale back to compare with benchmark
 # y_pred = np.array([y_train.mean() for _ in range(len(y_test))]).reshape(-1, 1)
 
 
