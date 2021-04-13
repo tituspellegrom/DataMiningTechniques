@@ -9,6 +9,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn import tree
 from tqdm import tqdm
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
+
 import graphviz
 
 import matplotlib.pyplot as plt
@@ -102,12 +104,14 @@ def regressionTree(data, parameters=None):
 
     X, binary_cols = userEncode(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.15, random_state=1)
-    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.18, random_state=1)
+    X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.15, random_state=1)
+    X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.18, random_state=1)
 
     data_splits = {}
-    data_splits['X_train'] = X_train
-    data_splits['y_train'] = y_train
+    # data_splits['X_train'] = X_train
+    # data_splits['y_train'] = y_train
+    data_splits['X_train'] = X_train_val
+    data_splits['y_train'] = y_train_val
     data_splits['X_val'] =  X_val
     data_splits['y_val'] = y_val
     data_splits['X_test'] = X_test
@@ -118,19 +122,33 @@ def regressionTree(data, parameters=None):
 
 
     metrics_df = pd.DataFrame(columns=['Depth', 'Samples split', 'Samples leaf', 'MAE', 'MSE'])
-    for i in tqdm(range(1,50)):
-        for j in range(2,40):
-            for k in range(1,20):
+    for i in tqdm(range(1,5)):
+        for j in range(2,4):
+            for k in range(1,2):
 
-                clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
-                clf = clf.fit(X_train, y_train)
-                y_pred = clf.predict(X_val)
+                score = cross_val_score(tree.DecisionTreeRegressor(random_state=1,
+                                                                   criterion='mae',
+                                                                   max_depth=i,
+                                                                   min_samples_split=j,
+                                                                   min_samples_leaf=k).fit(X_train, y_train),
+                                        X,
+                                        y,
+                                        cv=10)
 
-                # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
-                # wandb.sklearn.plot_feature_importances(clf, data.columns)
+                print(f'Scores for each fold: {score}')
+                MAE = np.mean(score)
+                MSE = 0
 
-                MSE = metrics.mean_squared_error(y_val, y_pred)
-                MAE = metrics.mean_absolute_error(y_val, y_pred)
+                # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
+                # clf = clf.fit(X_train, y_train)
+                # y_pred = clf.predict(X_val)
+                #
+                # # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
+                # # wandb.sklearn.plot_feature_importances(clf, data.columns)
+                #
+                # MSE = metrics.mean_squared_error(y_val, y_pred)
+                # MAE = metrics.mean_absolute_error(y_val, y_pred)
+
                 metrics_df = metrics_df.append({'Depth':i, 'Samples split':j, 'Samples leaf':k, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
 
 
