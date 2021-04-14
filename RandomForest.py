@@ -2,16 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split, cross_validate
-from sklearn import metrics
-from sklearn.decomposition import PCA
-from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import MinMaxScaler
-from sklearn import tree
-from tqdm import tqdm
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
 
-import graphviz
+from sklearn.ensemble import ExtraTreesRegressor
+
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_regression
 #
@@ -20,6 +14,18 @@ import wandb
 
 # wandb.init(project='DMT1', entity='jaimierutgers')
 
+def getColumnNames(data):
+    users = ['AS14.01', 'AS14.02','AS14.03','AS14.05','AS14.06','AS14.07','AS14.08',
+ 'AS14.09','AS14.12','AS14.13','AS14.14','AS14.15','AS14.16','AS14.17',
+ 'AS14.19','AS14.20','AS14.23','AS14.24','AS14.25','AS14.26','AS14.27',
+ 'AS14.28','AS14.29','AS14.30','AS14.31','AS14.32','AS14.33']
+
+    columns = [' '.join(col).strip() for col in data.columns.values]
+    columns_no_id = columns[1:-1].copy()
+    for user in users:
+        columns_no_id.append(user)
+
+    return columns_no_id
 
 
 def userEncode(X):
@@ -61,7 +67,6 @@ def randomForest(data, parameters=None):
     X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values.reshape(-1, 1)
 
-
     X, binary_cols = userEncode(X)
 
     X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.15, random_state=1)
@@ -69,23 +74,22 @@ def randomForest(data, parameters=None):
 
     regr = RandomForestRegressor(max_depth=3, random_state=1)
     fit = regr.fit(X, y.ravel())
-    print(fit.feature_importances_)
-
-    users = ['AS14.01', 'AS14.02','AS14.03','AS14.05','AS14.06','AS14.07','AS14.08',
- 'AS14.09','AS14.12','AS14.13','AS14.14','AS14.15','AS14.16','AS14.17',
- 'AS14.19','AS14.20','AS14.23','AS14.24','AS14.25','AS14.26','AS14.27',
- 'AS14.28','AS14.29','AS14.30','AS14.31','AS14.32','AS14.33']
-
-    columns = [' '.join(col).strip() for col in data.columns.values]
-    columns_no_id = columns[1:-1].copy()
-    for user in users:
-        columns_no_id.append(user)
-
-    # final_columns = columns_no_id.extend(users)
 
     # plot graph of feature importances for better visualization
-    feat_importances = pd.Series(fit.feature_importances_, index=columns_no_id)
-    feat_importances.nlargest(20).plot(kind='barh', ylabel='Gini importance', xlabel='Gini importance')
+    fig, ax = plt.subplots()
+    feat_importances = pd.Series(fit.feature_importances_, index=getColumnNames(data))
+    feat_importances.nlargest(20).plot(kind='barh', xlabel='Feature')
+    ax.set_xlabel('Gini performance')
+    plt.show()
+
+    model = ExtraTreesRegressor(random_state=1, max_depth=7)
+    model.fit(X, y.ravel())
+    fig, ax = plt.subplots()
+
+    feat_importances = pd.Series(model.feature_importances_, index=getColumnNames(data))
+    feat_importances.nlargest(20).plot(kind='barh', xlabel='Feature')
+    ax.set_xlabel('Gini performance')
+
     plt.show()
 
     # dot_data = tree.export_graphviz(clf, out_file='tree.dot')
@@ -96,35 +100,22 @@ def k_best(data):
     X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values.reshape(-1, 1)
 
-
     X, binary_cols = userEncode(X)
-
-    users = ['AS14.01', 'AS14.02', 'AS14.03', 'AS14.05', 'AS14.06', 'AS14.07', 'AS14.08',
-             'AS14.09', 'AS14.12', 'AS14.13', 'AS14.14', 'AS14.15', 'AS14.16', 'AS14.17',
-             'AS14.19', 'AS14.20', 'AS14.23', 'AS14.24', 'AS14.25', 'AS14.26', 'AS14.27',
-             'AS14.28', 'AS14.29', 'AS14.30', 'AS14.31', 'AS14.32', 'AS14.33']
-
-    columns = [' '.join(col).strip() for col in data.columns.values]
-    columns_no_id = columns[1:-1].copy()
-
-    for user in users:
-        columns_no_id.append(user)
 
     bestfeatures = SelectKBest(score_func=f_regression, k=20)
     fit = bestfeatures.fit(X, y)
     dfscores = pd.DataFrame(fit.scores_)
-    dfcolumns = pd.DataFrame(columns_no_id)
+    dfcolumns = pd.DataFrame(getColumnNames(data))
     # concat two dataframes for better visualization
     featureScores = pd.concat([dfcolumns, dfscores], axis=1)
     featureScores.columns = ['Specs', 'Score']  # naming the dataframe columns
-    print(featureScores.nlargest(20, 'Score'))  # print 10 best features
-
+    print(featureScores.nlargest(20, 'Score'))  # print 20 best features
+    print(featureScores.nlargest(20, 'Score').to_latex(float_format="%.2f"))
 
 
 data = pd.read_pickle('data_clean_daily.pkl')
 
-df_tab = tabular_aggregation(data, 7, 7)
-
+df_tab = tabular_aggregation(data, 7,7)
 randomForest(df_tab)
 k_best(df_tab)
 
