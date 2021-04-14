@@ -113,10 +113,57 @@ def k_best(data):
     print(featureScores.nlargest(20, 'Score').to_latex(float_format="%.2f"))
 
 
+def correlation_matrix(df_tab):
+    #import plotly.graph_objects as go
+
+    # rename the last column as target
+    df_tab.columns = list(map(lambda x: ' '.join(x), df_tab.columns))
+    df_tab.columns = df_tab.columns.tolist()[:-1] + ['target']
+
+    df_corr = df_tab.corr()
+    df_target_cor = df_corr['target'].sort_values(key=abs, ascending=False)
+
+    df_target_cor = df_target_cor[df_target_cor.abs() >= 0.15]
+    df_target_cor = df_target_cor.iloc[1:]
+
+    fig, ax = plt.subplots()
+    df_target_cor.plot(kind='barh', xlabel='Feature')
+    ax.set_xlabel('Pearson Coefficient')
+    plt.xlim([-1, 1])
+    plt.show()
+    plt.savefig('pearson.png')
+    #
+    # fig = go.Figure(data=go.Bar(x=list(map(lambda x: ', '.join(x), df_target_cor.index)),
+    #                             y=df_target_cor.values))
+    #
+    # fig.update_layout(
+    #     title="Pearson Correlation",
+    #     xaxis_title="Explanatory Variable",
+    #     yaxis_title="Pearson Coefficient",
+    #     yaxis_range=[-1, 1]
+    # )
+    # fig.show()
+    # fig.write_html("plots/corr_target.html")
+
+    return df_target_cor
+    # fig = go.Figure(data=go.Heatmap(z=df_corr_sign.values,
+    #                                 x=list(map(lambda c: '-'.join(c), df_corr_sign.axes[1])),
+    #                                 y=list(map(lambda c: '-'.join(c), df_corr_sign.axes[0])),
+    #                                 zmid=0
+    #                                 ))
+    # fig.show()
+    # fig.write_html("plots/correlation2.html")
+    # pass
+    
+    
 data = pd.read_pickle('data_clean_daily.pkl')
 
 df_tab = tabular_aggregation(data, 7,7)
 randomForest(df_tab)
 k_best(df_tab)
+correlation_matrix(df_tab)
+
+
+
 
 
