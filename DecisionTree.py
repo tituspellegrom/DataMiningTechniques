@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_validate
 from sklearn import metrics
 from sklearn.decomposition import PCA
 from sklearn.compose import ColumnTransformer
@@ -126,18 +126,18 @@ def regressionTree(data, parameters=None):
         for j in range(2,4):
             for k in range(1,2):
 
-                score = cross_val_score(tree.DecisionTreeRegressor(random_state=1,
-                                                                   criterion='mae',
+                score = cross_validate(tree.DecisionTreeRegressor(random_state=1,
                                                                    max_depth=i,
                                                                    min_samples_split=j,
                                                                    min_samples_leaf=k).fit(X_train, y_train),
                                         X,
                                         y,
-                                        cv=10)
+                                        cv=10,
+                                        scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
-                print(f'Scores for each fold: {score}')
-                MAE = np.mean(score)
-                MSE = 0
+                # print(f'Scores for each fold: {score}')
+                MAE = np.mean(score['test_neg_mean_absolute_error'])
+                MSE = np.mean(score['test_neg_mean_squared_error'])
 
                 # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
                 # clf = clf.fit(X_train, y_train)
@@ -158,7 +158,7 @@ def regressionTree(data, parameters=None):
 
 
 
-    dot_data = tree.export_graphviz(clf, out_file='tree.dot')
+    # dot_data = tree.export_graphviz(clf, out_file='tree.dot')
 
 
 
