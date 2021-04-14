@@ -102,6 +102,8 @@ def regressionTree(data, parameters=None):
     X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values.reshape(-1, 1)
 
+    print(X.shape)
+
     X, binary_cols = userEncode(X)
 
     X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, test_size=0.15, random_state=1)
@@ -122,22 +124,22 @@ def regressionTree(data, parameters=None):
 
 
     metrics_df = pd.DataFrame(columns=['Depth', 'Samples split', 'Samples leaf', 'MAE', 'MSE'])
-    for i in tqdm(range(1,5)):
-        for j in range(2,4):
-            for k in range(1,2):
+    for i in tqdm(range(1,50)):
+        for j in range(2,40):
+            for k in range(1,20):
 
                 score = cross_validate(tree.DecisionTreeRegressor(random_state=1,
                                                                    max_depth=i,
                                                                    min_samples_split=j,
                                                                    min_samples_leaf=k).fit(X_train, y_train),
-                                        X,
-                                        y,
+                                        X_val,
+                                        y_val,
                                         cv=10,
                                         scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
                 # print(f'Scores for each fold: {score}')
-                MAE = np.mean(score['test_neg_mean_absolute_error'])
-                MSE = np.mean(score['test_neg_mean_squared_error'])
+                MAE = np.mean(-score['test_neg_mean_absolute_error'])
+                MSE = np.mean(-score['test_neg_mean_squared_error'])
 
                 # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
                 # clf = clf.fit(X_train, y_train)
@@ -151,7 +153,7 @@ def regressionTree(data, parameters=None):
 
                 metrics_df = metrics_df.append({'Depth':i, 'Samples split':j, 'Samples leaf':k, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
 
-
+    metrics_df.to_pickle('metrics_decision_tree.pkl')
     print(metrics_df)
     print(metrics_df.iloc[metrics_df['MAE'].argmin()])
     print(metrics_df.iloc[metrics_df['MSE'].argmin()])
