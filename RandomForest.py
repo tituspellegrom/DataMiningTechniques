@@ -123,14 +123,14 @@ def correlation_matrix(df_tab):
     df_corr = df_tab.corr()
     df_target_cor = df_corr['target'].sort_values(key=abs, ascending=False)
 
-    df_target_cor = df_target_cor[df_target_cor.abs() >= 0.15]
-    df_target_cor = df_target_cor.iloc[1:]
+    # df_target_cor = df_target_cor[df_target_cor.abs() >= 0.15]
+    df_target_cor = df_target_cor.iloc[1:21]
 
     fig, ax = plt.subplots()
     df_target_cor.plot(kind='barh', xlabel='Feature')
     ax.set_xlabel('Pearson Coefficient')
+    plt.tight_layout()
     plt.xlim([-1, 1])
-    plt.show()
     plt.savefig('pearson.png')
     #
     # fig = go.Figure(data=go.Bar(x=list(map(lambda x: ', '.join(x), df_target_cor.index)),
