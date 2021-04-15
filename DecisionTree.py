@@ -18,6 +18,14 @@ import wandb
 
 # wandb.init(project='DMT1', entity='jaimierutgers')
 
+def loadFeatures():
+    with open('features.txt') as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    features = [x.strip() for x in content]
+
+    return features
+
 def userEncode(X):
     enc = OneHotEncoder()
     X_usr = enc.fit_transform(X[:, 0].reshape(-1, 1)).toarray()
@@ -98,11 +106,14 @@ def tabular_aggregation(df_daily, lookback_days, min_period):
 
     return df_tab2.dropna()
 
-def regressionTree(data, parameters=None):
-    X = data.iloc[:, :-1].values
-    y = data.iloc[:, -1].values.reshape(-1, 1)
+def regressionTree(data, method, features):
 
-    print(X.shape)
+    data.columns = [' '.join(col).strip() for col in data.columns.values]
+    if method =='feature selection':
+        X=data[features].values
+    else:
+        X = data.iloc[:, :-1].values
+    y = data.iloc[:, -1].values.reshape(-1, 1)
 
     X, binary_cols = userEncode(X)
 
@@ -110,8 +121,7 @@ def regressionTree(data, parameters=None):
     X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.18, random_state=1)
 
     data_splits = {}
-    # data_splits['X_train'] = X_train
-    # data_splits['y_train'] = y_train
+
     data_splits['X_train'] = X_train_val
     data_splits['y_train'] = y_train_val
     data_splits['X_val'] =  X_val
@@ -119,52 +129,58 @@ def regressionTree(data, parameters=None):
     data_splits['X_test'] = X_test
     data_splits['y_test'] = y_test
 
-    data_splits_scaled = scaleData(data_splits, binary_cols)
-    X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
+    if method == 'PCA':
+        data_splits_scaled = scaleData(data_splits, binary_cols)
+        X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
 
 
     metrics_df = pd.DataFrame(columns=['Depth', 'Samples split', 'Samples leaf', 'MAE', 'MSE'])
-    for i in tqdm(range(1,50)):
-        for j in range(2,40):
-            for k in range(1,20):
 
-                score = cross_validate(tree.DecisionTreeRegressor(random_state=1,
-                                                                   max_depth=i,
-                                                                   min_samples_split=j,
-                                                                   min_samples_leaf=k).fit(X_train, y_train),
-                                        X_val,
-                                        y_val,
-                                        cv=10,
-                                        scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
+    reg = DecisionTreeRegressor(random_state=1)
+    reg = reg.fit(X_train, y_train)
+    score = cross_validate(reg, X_val, y_val, cv=10, scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
-                # print(f'Scores for each fold: {score}')
-                MAE = np.mean(-score['test_neg_mean_absolute_error'])
-                MSE = np.mean(-score['test_neg_mean_squared_error'])
+    # # print(f'Scores for each fold: {score}')
+    # MAE = np.mean(-score['test_neg_mean_absolute_error'])
+    # MSE = np.mean(-score['test_neg_mean_squared_error'])
 
-                # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
-                # clf = clf.fit(X_train, y_train)
-                # y_pred = clf.predict(X_val)
-                #
-                # # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
-                # # wandb.sklearn.plot_feature_importances(clf, data.columns)
-                #
-                # MSE = metrics.mean_squared_error(y_val, y_pred)
-                # MAE = metrics.mean_absolute_error(y_val, y_pred)
+    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='Regression tree '+method)
+    # MAE_series.plot.box(ylim=[0,1], legend=True)
+    # plt.axhline(0.25, c='r', linestyle='--', label='Baseline')
+    # plt.legend()
+    # plt.show()
 
-                metrics_df = metrics_df.append({'Depth':i, 'Samples split':j, 'Samples leaf':k, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
+    # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
+    # clf = clf.fit(X_train, y_train)
+    # y_pred = clf.predict(X_val)
+    #
+    # # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
+    # # wandb.sklearn.plot_feature_importances(clf, data.columns)
+    #
+    # MSE = metrics.mean_squared_error(y_val, y_pred)
+    # MAE = metrics.mean_absolute_error(y_val, y_pred)
 
-    metrics_df.to_pickle('metrics_decision_tree.pkl')
-    print(metrics_df)
-    print(metrics_df.iloc[metrics_df['MAE'].argmin()])
-    print(metrics_df.iloc[metrics_df['MSE'].argmin()])
-
-
+    # metrics_df = metrics_df.append({'Depth':1, 'Samples split':1, 'Samples leaf':1, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
+    #
+    # metrics_df.to_pickle('metrics_decision_tree.pkl')
+    # print(metrics_df)
+    # print(metrics_df.iloc[metrics_df['MAE'].argmin()])
+    # print(metrics_df.iloc[metrics_df['MSE'].argmin()])
+    #
+    return MAE_series
 
     # dot_data = tree.export_graphviz(clf, out_file='tree.dot')
 
+def dt_main():
+    data = pd.read_pickle('data_clean_daily.pkl')
+    df_tab = tabular_aggregation(data, 7, 7)
+    features = loadFeatures()
+    methods = ['feature selection', 'PCA']
+    results = pd.DataFrame()
+    for method in methods:
+        MAE_series = regressionTree(df_tab, method, features)
+        results = results.append(MAE_series)
+    return results
 
-
-data = pd.read_pickle('data_clean_daily.pkl')
-df_tab = tabular_aggregation(data, 7, 7)
-regressionTree(df_tab)
-
+if __name__ == '__main__':
+    dt_main()

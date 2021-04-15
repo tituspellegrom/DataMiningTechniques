@@ -8,7 +8,8 @@ DF_DAILY = pd.read_pickle('data_clean_daily.pkl')
 
 
 def bench_model():
-    df = DF_DAILY.set_index(['id', 'time']).sort_index()
+    df_daily = pd.read_pickle('data_clean_daily.pkl')
+    df = df_daily.set_index(['id', 'time']).sort_index()
 
     df_bench = pd.DataFrame(columns=['y_pred', 'y_true'])
     df_bench['y_pred'] = df[('mood', 'mean')]
@@ -19,7 +20,7 @@ def bench_model():
     mae = mean_absolute_error(df_bench['y_pred'], df_bench['y_true'])
 
     print(f"Naive Bench Model:\n MSE: {mse}\n MAE: {mae}")
-    return mse
+    return mae
 
 
 def tabular_aggregation(lookback_days, min_period):

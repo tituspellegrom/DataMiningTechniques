@@ -16,7 +16,3 @@ appCat.game sum
 appCat.office sum
 appCat.other sum 
 appCat.utilities count
-
-
-
-

@@ -88,7 +88,7 @@ def randomForest(data, parameters=None):
 
     feat_importances = pd.Series(model.feature_importances_, index=getColumnNames(data))
     feat_importances.nlargest(20).plot(kind='barh', xlabel='Feature')
-    ax.set_xlabel('Gini performance')
+    ax.set_xlabel('Gini importance')
     plt.tight_layout()
 
     plt.savefig('ExtraTree.pdf')

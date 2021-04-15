@@ -4,15 +4,17 @@ from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.svm import SVR
-from DecisionTree import userEncode, tabular_aggregation, scaleData, PCAtransform
+from DecisionTree import userEncode, tabular_aggregation, scaleData, PCAtransform, loadFeatures
 
 
 
-def svr(data):
-    X = data.iloc[:, :-1].values
+def svr(data, method, features):
+    data.columns = [' '.join(col).strip() for col in data.columns.values]
+    if method =='feature selection':
+        X=data[features].values
+    else:
+        X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values.reshape(-1, 1)
-
-    print(X.shape)
 
     X, binary_cols = userEncode(X)
 
@@ -30,16 +32,16 @@ def svr(data):
     data_splits['y_test'] = y_test
 
     data_splits_scaled = scaleData(data_splits, binary_cols)
-    X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
+    if method == 'PCA':
+        X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
 
     metrics_df = pd.DataFrame(columns=['Kernel', 'MAE', 'MSE'])
     #kernels =
 
     # TODO: Optimize kernels
-    score = cross_validate(SVR(random_state=1,
-                               kernel='rbf').fit(X_train, y_train),
+    score = cross_validate(SVR(kernel='rbf').fit(X_train, y_train),
                            X_val,
-                           y_val,
+                           y_val.ravel(),
                            cv=10,
                            scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
@@ -47,17 +49,29 @@ def svr(data):
     MAE = -score['test_neg_mean_absolute_error']
     MSE = -score['test_neg_mean_squared_error']
 
-    regr = SVR(random_state=1, kernel='rbf')
-    regr.fit(X_train, y_train)
-    y_pred = regr.predict(X_val)
-    MSE_val = mean_squared_error(y_val, y_pred)
-    MAE_val = mean_absolute_error(y_val, y_pred)
+    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='SVR '+method)
 
+    return MAE_series
 
-data = pd.read_pickle('data_clean_daily.pkl')
-df_tab = tabular_aggregation(data, 7, 7)
-svr(df_tab)
+    # regr = SVR(random_state=1, kernel='rbf')
+    # regr.fit(X_train, y_train)
+    # y_pred = regr.predict(X_val)
+    # MSE_val = mean_squared_error(y_val, y_pred)
+    # MAE_val = mean_absolute_error(y_val, y_pred)
 
+def svr_main():
+    data = pd.read_pickle('data_clean_daily.pkl')
+    df_tab = tabular_aggregation(data, 7, 7)
+    features = loadFeatures()
+    methods = ['feature selection', 'PCA']
+    results = pd.DataFrame()
+    for method in methods:
+        MAE_series = svr(df_tab, method, features)
+        results = results.append(MAE_series)
+    return results
+
+if __name__ == '__main__':
+    svr_main()
 # TODO: optimize days
 
 #
