@@ -126,6 +126,9 @@ def correlation_matrix(df_tab):
     # df_target_cor = df_target_cor[df_target_cor.abs() >= 0.15]
     df_target_cor = df_target_cor.iloc[1:21]
 
+    for col in df_target_cor.index:
+        print(col)
+
     fig, ax = plt.subplots()
     df_target_cor.plot(kind='barh', xlabel='Feature')
     ax.set_xlabel('Pearson Coefficient')
