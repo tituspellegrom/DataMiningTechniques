@@ -31,9 +31,18 @@ def svr(data, method, features):
     data_splits['X_test'] = X_test
     data_splits['y_test'] = y_test
 
-    data_splits_scaled = scaleData(data_splits, binary_cols)
+
     if method == 'PCA':
+        data_splits_scaled = scaleData(data_splits, binary_cols)
         X_train, X_val, y_train, y_val, X_test, y_test = PCAtransform(data_splits_scaled)
+    else:
+        data_splits_scaled = scaleData(data_splits, binary_cols)
+        X_train = data_splits_scaled['X_train']
+        y_train = data_splits_scaled['y_train']
+        X_val = data_splits_scaled['X_val']
+        y_val = data_splits_scaled['y_val']
+        X_test = data_splits_scaled['X_test']
+        y_test = data_splits_scaled['y_test']
 
     metrics_df = pd.DataFrame(columns=['Kernel', 'MAE', 'MSE'])
     #kernels =
@@ -49,7 +58,7 @@ def svr(data, method, features):
     MAE = -score['test_neg_mean_absolute_error']
     MSE = -score['test_neg_mean_squared_error']
 
-    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='SVR '+method)
+    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='SVR \n'+method)
 
     return MAE_series
 

@@ -11,6 +11,7 @@ def bench_model():
     df_daily = pd.read_pickle('data_clean_daily.pkl')
     df = df_daily.set_index(['id', 'time']).sort_index()
 
+
     df_bench = pd.DataFrame(columns=['y_pred', 'y_true'])
     df_bench['y_pred'] = df[('mood', 'mean')]
     df_bench['y_true'] = df[('mood', 'mean')].groupby(level='id').shift(periods=-1) # next day mean mood

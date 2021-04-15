@@ -3,6 +3,10 @@ from SVR import svr_main
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+
+import seaborn as sns
 
 def bench_model():
     df_daily = pd.read_pickle('data_clean_daily.pkl')
@@ -13,7 +17,13 @@ def bench_model():
     df_bench['y_true'] = df[('mood', 'mean')].groupby(level='id').shift(periods=-1) # next day mean mood
     df_bench.dropna(inplace=True)
 
-    mae = mean_absolute_error(df_bench['y_pred'], df_bench['y_true'])
+    # sc_y = MinMaxScaler(feature_range=(-1,1))
+    #
+    # y_true = sc_y.fit_transform(np.array(df_bench['y_true']).reshape(-1,1))
+    # y_pred = sc_y.fit_transform(np.array(df_bench['y_pred']).reshape(-1,1))
+    # mae = mean_absolute_error(y_true, y_pred)
+
+    mae = mean_absolute_error(df_bench['y_true'], df_bench['y_pred'])
 
     return mae
 
@@ -27,8 +37,23 @@ final_df = final_df.append([dt_results, svr_results]).transpose()
 print(final_df)
 
 final_df.boxplot()
+plt.ylabel('Mean Absolute Error')
+plt.ylim(0,1)
 plt.axhline(bench, c='r', linestyle='--', label='Baseline')
-plt.xticks(rotation='diagonal')
+
+
+plt.legend()
+plt.show()
+
+regressiontree = pd.DataFrame()
+for window in [3,5,7]:
+    dt_results = dt_main(window)
+    print(dt_results.iloc[0].mean())
+    regressiontree = regressiontree.append(dt_results)
+
+regressiontree.transpose().boxplot()
+plt.ylabel('Mean Absolute Error')
+plt.ylim(0,0.2)
 
 plt.legend()
 plt.show()

@@ -49,9 +49,9 @@ def scaleData(data_splits, binary_cols):
     X_val[:, binary_cols:] = sc_X.transform(X_val[:, binary_cols:])
     X_test[:, binary_cols:] = sc_X.transform(X_test[:, binary_cols:])
 
-    y_train = sc_y.fit_transform(y_train)
-    y_val = sc_y.transform(y_val)
-    y_test = sc_y.transform(y_test)
+    # y_train = sc_y.fit_transform(y_train)
+    # y_val = sc_y.transform(y_val)
+    # y_test = sc_y.transform(y_test)
 
     data_splits['X_train'] = X_train
     data_splits['y_train'] = y_train
@@ -138,13 +138,13 @@ def regressionTree(data, method, features):
 
     reg = DecisionTreeRegressor(random_state=1)
     reg = reg.fit(X_train, y_train)
-    score = cross_validate(reg, X_val, y_val, cv=10, scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
+    score = cross_validate(reg, X_val, y_val.ravel(), cv=10, scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
     # # print(f'Scores for each fold: {score}')
     # MAE = np.mean(-score['test_neg_mean_absolute_error'])
     # MSE = np.mean(-score['test_neg_mean_squared_error'])
 
-    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='Regression tree '+method)
+    MAE_series = pd.Series(-score['test_neg_mean_absolute_error'], name='Regression tree \n'+method)
     # MAE_series.plot.box(ylim=[0,1], legend=True)
     # plt.axhline(0.25, c='r', linestyle='--', label='Baseline')
     # plt.legend()
@@ -171,9 +171,9 @@ def regressionTree(data, method, features):
 
     # dot_data = tree.export_graphviz(clf, out_file='tree.dot')
 
-def dt_main():
+def dt_main(window=7):
     data = pd.read_pickle('data_clean_daily.pkl')
-    df_tab = tabular_aggregation(data, 7, 7)
+    df_tab = tabular_aggregation(data, window, window)
     features = loadFeatures()
     methods = ['feature selection', 'PCA']
     results = pd.DataFrame()
