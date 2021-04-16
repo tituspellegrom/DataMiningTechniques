@@ -133,12 +133,12 @@ def correlation_matrix(df_tab):
     for col in df_target_cor.index:
         print(col)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 9))
     df_target_cor.plot(kind='barh', xlabel='Feature')
     ax.set_xlabel('Pearson Coefficient')
     plt.tight_layout()
-    plt.xlim([-1, 1])
-    plt.savefig('pearson.png')
+    #plt.xlim([-1, 1])
+    plt.savefig('pearson.pdf')
     #
     # fig = go.Figure(data=go.Bar(x=list(map(lambda x: ', '.join(x), df_target_cor.index)),
     #                             y=df_target_cor.values))
