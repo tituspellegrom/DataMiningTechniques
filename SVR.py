@@ -48,7 +48,7 @@ def svr(data, method, features):
     #kernels =
 
     # TODO: Optimize kernels
-    score = cross_validate(SVR(kernel='rbf').fit(X_train, y_train),
+    score = cross_validate(SVR(kernel='rbf').fit(X_train, y_train.ravel()),
                            X_val,
                            y_val.ravel(),
                            cv=10,

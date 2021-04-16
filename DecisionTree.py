@@ -109,6 +109,7 @@ def tabular_aggregation(df_daily, lookback_days, min_period):
 def regressionTree(data, method, features):
 
     data.columns = [' '.join(col).strip() for col in data.columns.values]
+
     if method =='feature selection':
         X=data[features].values
     else:
@@ -137,7 +138,7 @@ def regressionTree(data, method, features):
     metrics_df = pd.DataFrame(columns=['Depth', 'Samples split', 'Samples leaf', 'MAE', 'MSE'])
 
     reg = DecisionTreeRegressor(random_state=1)
-    reg = reg.fit(X_train, y_train)
+    reg = reg.fit(X_train, y_train.ravel())
     score = cross_validate(reg, X_val, y_val.ravel(), cv=10, scoring=['neg_mean_squared_error', 'neg_mean_absolute_error'])
 
     # # print(f'Scores for each fold: {score}')
@@ -150,16 +151,17 @@ def regressionTree(data, method, features):
     # plt.legend()
     # plt.show()
 
-    # clf = DecisionTreeRegressor(random_state=1, max_depth=i, min_samples_split=j, min_samples_leaf=k)
-    # clf = clf.fit(X_train, y_train)
-    # y_pred = clf.predict(X_val)
+    clf = DecisionTreeRegressor(random_state=1)
+    clf = clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
     #
     # # wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train.flatten(), y_val, model_name='Decision tree')
     # # wandb.sklearn.plot_feature_importances(clf, data.columns)
     #
     # MSE = metrics.mean_squared_error(y_val, y_pred)
-    # MAE = metrics.mean_absolute_error(y_val, y_pred)
+    MAE = metrics.mean_absolute_error(y_test, y_pred)
 
+    print('MAE on test set:', MAE)
     # metrics_df = metrics_df.append({'Depth':1, 'Samples split':1, 'Samples leaf':1, 'MAE':MAE, 'MSE':MSE}, ignore_index=True)
     #
     # metrics_df.to_pickle('metrics_decision_tree.pkl')
