@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.7.10",
+    "heartbeatAt": "2021-04-13T14:29:48.065091",
+    "startedAt": "2021-04-13T14:29:45.432886",
+    "docker": null,
+    "gpu": "GeForce GTX 960M",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques/DecisionTree.py",
+    "codePath": "DecisionTree.py",
+    "git": {
+        "remote": "https://github.com/tituspellegrom/DataMiningTechniques.git",
+        "commit": "9093248bd3527fcd3272ee3826395552364be2d7"
+    },
+    "email": "j.r.rutgers@student.vu.nl",
+    "root": "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques",
+    "host": "DESKTOP-5JGA1BG",
+    "username": "Jaimie",
+    "executable": "C:\\Users\\Jaimie\\Anaconda3\\envs\\DMT\\python.exe"
+}

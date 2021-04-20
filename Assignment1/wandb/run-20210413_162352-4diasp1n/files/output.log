@@ -1,0 +1,22 @@
+wandb: 
+wandb: Plotting Decision tree.
+wandb: Logged summary metrics.
+wandb: Logged learning curve.
+C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py:1254: RuntimeWarning: invalid value encountered in sqrt
+  residuals_studentized = residuals / np.sqrt(mse) / np.sqrt(1 - leverage)
+Traceback (most recent call last):
+  File "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques/DecisionTree.py", line 129, in <module>
+    regressionTree(df_tab)
+  File "C:/Users/Jaimie/Documents/VU/Master jaar 1/Data Mining Techniques/DataMiningTechniques/DecisionTree.py", line 119, in regressionTree
+    wandb.sklearn.plot_regressor(clf, X_train, X_val, y_train, y_val, model_name='Decision tree')
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 150, in plot_regressor
+    plot_outlier_candidates(model, X_train, y_train)
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 1305, in plot_outlier_candidates
+    distance_dict, outlier_percentage_, influence_threshold_
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 1297, in outlier_candidates
+    for i in range(len(distance))
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 1297, in <listcomp>
+    for i in range(len(distance))
+  File "C:\Users\Jaimie\Anaconda3\envs\DMT\lib\site-packages\wandb\sklearn\__init__.py", line 38, in round_3
+    return round(n, 3)
+TypeError: type numpy.ndarray doesn't define __round__ method
