@@ -1,0 +1,60 @@
+2021-04-13 16:17:13,929 INFO    MainThread:28068 [wandb_setup.py:_flush():69] setting env: {}
+2021-04-13 16:17:13,930 INFO    MainThread:28068 [wandb_setup.py:_flush():69] setting login settings: {}
+2021-04-13 16:17:13,930 INFO    MainThread:28068 [wandb_init.py:_log_setup():319] Logging user logs to C:\Users\Jaimie\Documents\VU\Master jaar 1\Data Mining Techniques\DataMiningTechniques\wandb\run-20210413_161713-1mya31rq\logs\debug.log
+2021-04-13 16:17:13,931 INFO    MainThread:28068 [wandb_init.py:_log_setup():320] Logging internal logs to C:\Users\Jaimie\Documents\VU\Master jaar 1\Data Mining Techniques\DataMiningTechniques\wandb\run-20210413_161713-1mya31rq\logs\debug-internal.log
+2021-04-13 16:17:13,931 INFO    MainThread:28068 [wandb_init.py:init():352] calling init triggers
+2021-04-13 16:17:13,957 INFO    MainThread:28068 [wandb_init.py:init():359] wandb.init called with sweep_config: {}
+config: {}
+2021-04-13 16:17:13,958 INFO    MainThread:28068 [wandb_init.py:init():401] starting backend
+2021-04-13 16:17:13,958 INFO    MainThread:28068 [backend.py:_multiprocessing_setup():71] multiprocessing start_methods=spawn, using: spawn
+2021-04-13 16:17:13,972 INFO    MainThread:28068 [backend.py:ensure_launched():123] starting backend process...
+2021-04-13 16:17:14,471 INFO    MainThread:28068 [backend.py:ensure_launched():128] started backend process with pid: 33328
+2021-04-13 16:17:14,472 INFO    MainThread:28068 [wandb_init.py:init():406] backend started and connected
+2021-04-13 16:17:14,472 INFO    MainThread:28068 [wandb_init.py:init():446] updated telemetry
+2021-04-13 16:17:14,473 INFO    MainThread:28068 [wandb_init.py:init():465] communicating current version
+2021-04-13 16:17:15,739 INFO    MainThread:28068 [wandb_init.py:init():470] got version response upgrade_message: "wandb version 0.10.25 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2021-04-13 16:17:15,739 INFO    MainThread:28068 [wandb_init.py:init():478] communicating run to backend with 30 second timeout
+2021-04-13 16:17:16,144 INFO    MainThread:28068 [wandb_init.py:init():503] starting run threads in backend
+2021-04-13 16:17:16,697 INFO    MainThread:28068 [wandb_run.py:_console_start():1422] atexit reg
+2021-04-13 16:17:16,699 INFO    MainThread:28068 [wandb_run.py:_redirect():1285] redirect: SettingsConsole.WRAP
+2021-04-13 16:17:16,699 INFO    MainThread:28068 [wandb_run.py:_redirect():1320] Wrapping output streams.
+2021-04-13 16:17:16,699 INFO    MainThread:28068 [wandb_run.py:_redirect():1336] Redirects installed.
+2021-04-13 16:17:16,699 INFO    MainThread:28068 [wandb_init.py:init():527] run started, returning control to user process
+2021-04-13 16:17:17,689 INFO    MainThread:28068 [wandb_run.py:_config_callback():669] config_cb None None {'_wandb': {'viz': {'summary_metrics': {'id': 'wandb/metrics/v1', 'historyFieldSettings': {'key': 'summary_metrics', 'x-axis': '_step'}}}}}
+2021-04-13 16:17:19,340 INFO    MainThread:28068 [wandb_run.py:_config_callback():669] config_cb None None {'_wandb': {'viz': {'summary_metrics': {'id': 'wandb/metrics/v1', 'historyFieldSettings': {'key': 'summary_metrics', 'x-axis': '_step'}}, 'learning_curve': {'id': 'wandb/learning_curve/v1', 'historyFieldSettings': {'key': 'learning_curve', 'x-axis': '_step'}}}}}
+2021-04-13 16:17:19,684 INFO    MainThread:28068 [wandb_run.py:_atexit_cleanup():1392] got exitcode: 1
+2021-04-13 16:17:19,685 INFO    MainThread:28068 [wandb_run.py:_restore():1364] restore
+2021-04-13 16:17:19,899 INFO    MainThread:28068 [wandb_run.py:_wait_for_finish():1515] got exit ret: file_counts {
+  wandb_count: 1
+  media_count: 2
+}
+pusher_stats {
+  uploaded_bytes: 1390
+  total_bytes: 1390
+}
+
+2021-04-13 16:17:21,914 INFO    MainThread:28068 [wandb_run.py:_wait_for_finish():1515] got exit ret: file_counts {
+  wandb_count: 5
+  media_count: 2
+}
+pusher_stats {
+  uploaded_bytes: 5389
+  total_bytes: 5389
+}
+
+2021-04-13 16:17:23,934 INFO    MainThread:28068 [wandb_run.py:_wait_for_finish():1515] got exit ret: done: true
+exit_result {
+}
+file_counts {
+  wandb_count: 5
+  media_count: 2
+}
+pusher_stats {
+  uploaded_bytes: 5389
+  total_bytes: 5389
+}
+
+2021-04-13 16:17:25,156 INFO    MainThread:28068 [wandb_run.py:_show_summary():1670] rendering summary
+2021-04-13 16:17:25,157 INFO    MainThread:28068 [wandb_run.py:_show_history():1708] rendering history
+2021-04-13 16:17:25,157 INFO    MainThread:28068 [wandb_run.py:_show_files():1737] logging synced files
