@@ -5,6 +5,18 @@ import dask.dataframe as dd
 from tqdm import tqdm
 import numpy as np
 import gc
+import pickle
+
+def create_label_column(df):
+    df['label'] = 0
+    book_indices = df['booking_bool'] == 1
+    click_indices = df['click_bool'] == 1
+
+    df['label'].loc[click_indices] = 1
+    df['label'].loc[book_indices] = 5
+
+
+    return df
 
 def get_labels(row):
     '''
@@ -75,23 +87,45 @@ def preprocess():
     '''
     print('Loading data...')
     df = pd.read_pickle('df_temporary.pkl')
+    groups = df['srch_id'].values
     id_cols = ['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id', 'srch_destination_id']
     non_id_cols = list(set(df.columns) - set(id_cols))
-
-    # create label column and drop unneeded columns
-    print('Creating label...')
-    df['label'] = df.apply(lambda row: get_labels(row), axis=1)
-    df.drop(['click_bool', 'booking_bool', 'date_time'], axis=1, inplace=True)
 
     df = convert_dtypes(df, id_cols)
     df_dummy, embedding_dims_id = one_hot_encode(df, id_cols)
     data_merged = pd.concat([df, df_dummy], axis=1)
     data_merged.drop(id_cols, axis=1, inplace=True) #drop id columns as these are now encoded
 
+    # create label column and drop unneeded columns
+    print('Creating label...')
+    # df['label'] = df.apply(lambda row: get_labels(row), axis=1)
+    # df['label'] = df['label'].astype('category')
+    data_merged = create_label_column(data_merged)
+    data_merged.drop(['click_bool', 'booking_bool', 'date_time'], axis=1, inplace=True)
+
+    new_columns = [str(i) for i in range(0, data_merged.shape[1])]
+    data_merged.columns = new_columns
+    # data_merged.reindex(columns=new_columns, copy=False)
+
+    print('Saving data...')
+
     data_merged.to_pickle('data_merged.pkl')
 
-    # add feature dims of non_id_cols, this is alway one
+
+
+# add feature dims of non_id_cols, this is alway one
     embedding_dims = [1]*len(non_id_cols)
     embedding_dims.extend(embedding_dims_id)
 
-    return data_merged, embedding_dims
+    #save embedding_dims and groups
+
+    with open('embedding_dims.txt', 'wb') as fp:
+        pickle.dump(embedding_dims, fp)
+
+    with open('groups.txt', 'wb') as fp:
+        pickle.dump(groups, fp)
+
+    return data_merged, embedding_dims, groups
+
+if __name__ == '__main__':
+    preprocess()
