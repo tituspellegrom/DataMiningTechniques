@@ -19,7 +19,8 @@ Assignment2/expedia-personalized-sort/data/test.csv
 Assignment2/dask-worker-space/purge.lock
 Assignment2/dask-worker-space/global.lock
 Assignment2/.ipynb_checkpoints/exploration_titus-checkpoint.ipynb
-Assignment2/Code/Neural Collaborative Filtering/NCF_v1/checkpoints
-Assignment2/Code/Neural Collaborative Filtering/NCF_v1/results
-Assignment2/Code/Neural Collaborative Filtering/NCF_v1/runs
-Assignment2/Code/Neural Collaborative Filtering/NCF_v1/pics
+Assignment2/Code/Neural Collaborative Filtering/checkpoints
+Assignment2/Code/Neural Collaborative Filtering/results
+Assignment2/Code/Neural Collaborative Filtering/runs
+Assignment2/Code/Neural Collaborative Filtering/pics
+*.pkl

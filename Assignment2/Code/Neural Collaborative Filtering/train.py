@@ -60,27 +60,32 @@ neumf_config = {'alias': 'neumf_factor8neg4_pretrain',
                 }
 
 # Load Data
-ml1m_dir = '../../ml-1m/ratings.dat'
-ml1m_rating = pd.read_csv(ml1m_dir, sep='::', header=None, names=['uid', 'mid', 'rating', 'timestamp'], engine='python')
-
-# Reindex data based on userId
-user_id = ml1m_rating[['uid']].drop_duplicates().reindex()
-user_id['userId'] = np.arange(len(user_id))
-
-ml1m_rating = pd.merge(ml1m_rating, user_id, on=['uid'], how='left')
-
-# Reindex data based on itemId
-item_id = ml1m_rating[['mid']].drop_duplicates()
-item_id['itemId'] = np.arange(len(item_id))
-
-ml1m_rating = pd.merge(ml1m_rating, item_id, on=['mid'], how='left')
-
-# Get the final ratings dataframe
-ml1m_rating = ml1m_rating[['userId', 'itemId', 'rating', 'timestamp']]
-print('Range of userId is [{}, {}]'.format(ml1m_rating.userId.min(), ml1m_rating.userId.max()))
-print('Range of itemId is [{}, {}]'.format(ml1m_rating.itemId.min(), ml1m_rating.itemId.max()))
+# ml1m_dir = '../../ml-1m/ratings.dat'
+# ml1m_rating = pd.read_csv(ml1m_dir, sep='::', header=None, names=['uid', 'mid', 'rating', 'timestamp'], engine='python')
+#
+# # Reindex data based on userId
+# user_id = ml1m_rating[['uid']].drop_duplicates().reindex()
+# user_id['userId'] = np.arange(len(user_id))
+#
+# ml1m_rating = pd.merge(ml1m_rating, user_id, on=['uid'], how='left')
+#
+# # Reindex data based on itemId
+# item_id = ml1m_rating[['mid']].drop_duplicates()
+# item_id['itemId'] = np.arange(len(item_id))
+#
+# ml1m_rating = pd.merge(ml1m_rating, item_id, on=['mid'], how='left')
+#
+# # Get the final ratings dataframe
+# ml1m_rating = ml1m_rating[['userId', 'itemId', 'rating', 'timestamp']]
+# print('Range of userId is [{}, {}]'.format(ml1m_rating.userId.min(), ml1m_rating.userId.max()))
+# print('Range of itemId is [{}, {}]'.format(ml1m_rating.itemId.min(), ml1m_rating.itemId.max()))
 
 # DataLoader for training
+
+
+#load preprocessed data
+#create train loaders + ensure that search ids are grouped
+#remove search id column
 sample_generator = SampleGenerator(ratings=ml1m_rating)
 # Generate test data for evaluation purpose
 evaluate_data = sample_generator.evaluate_data
