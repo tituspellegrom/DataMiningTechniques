@@ -128,6 +128,7 @@ def preprocess2(data_name):
     Preprocesses the input data to a dataframe with all id columns one-hot encoded
     :return: DataFrame with features and one-hot encoded categories. List of embedding dimensions needed for DeepFM
     '''
+    # TODO: variable to ignore onehotencodings (some models can't handle sparse data)
 
     print('Loading data...')
 
@@ -153,8 +154,10 @@ def preprocess2(data_name):
     embedding_dims = np.array(non_ids_dims+ids_dims+[1]) # label also dimension 1 => is this needed?
 
     sp.save_npz(f'{data_name}_data_merged.npz', X_enc)
-    embedding_dims.tofile(f'{data_name}_embedding_dims.txt')
-    groups.tofile(f'{data_name}_groups.txt')
+    embedding_dims.tofile(f'{data_name}_embedding_dims.csv', sep=',')
+    groups.tofile(f'{data_name}_groups.csv', sep=',')
+
+    # TODO: Feature scaling
 
     return X_enc, embedding_dims, groups
 
@@ -207,6 +210,6 @@ def preprocess():
 
 
 if __name__ == '__main__':
-    preprocess2('df_temporary')
+    #preprocess2('df_temporary')
     preprocess2('df_features')
 
