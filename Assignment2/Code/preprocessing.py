@@ -107,7 +107,7 @@ def one_hot_encode2(X):
     print('Encoding dummies...')
     X_enc_list = []
 
-    enc = OneHotEncoder()
+    enc = OneHotEncoder(sparse=True)
 
     n, m = X.shape
     for i in tqdm(range(m)):
@@ -131,7 +131,7 @@ def preprocess2(data_name):
 
     print('Loading data...')
 
-    df = pd.read_pickle(f'{data_name}.pkl')
+    df = pd.read_pickle(f'../{data_name}.pkl')
     groups = df['srch_id'].to_numpy()
 
     # id_cols = ['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id', 'srch_destination_id']
@@ -143,13 +143,11 @@ def preprocess2(data_name):
     id_cols = pd.read_csv(f'{data_name}_idcols.csv')['id_columns'].values.tolist()
     non_id_cols = list(set(df.columns) - set(id_cols))
 
-    df = convert_dtypes(df, id_cols)
-
     X_non_ids = df[non_id_cols].to_numpy()
     X_ids = df[id_cols].to_numpy()
 
     X_ids_enc, ids_dims = one_hot_encode2(X_ids)
-    X_enc = sp.hstack([X_non_ids, X_ids_enc, X_label])
+    X_enc = sp.hstack([X_non_ids.astype(float), X_ids_enc.astype(float), X_label.astype(float)])
 
     non_ids_dims = [1] * X_non_ids.shape[1]
     embedding_dims = np.array(non_ids_dims+ids_dims+[1]) # label also dimension 1 => is this needed?
@@ -210,4 +208,5 @@ def preprocess():
 
 if __name__ == '__main__':
     preprocess2('df_temporary')
+    preprocess2('df_features')
 
