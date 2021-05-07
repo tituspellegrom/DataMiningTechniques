@@ -1,6 +1,7 @@
 import torch
+import torch.nn as nn
 
-from torchfm.layer import FactorizationMachine, FeaturesEmbedding, FeaturesLinear, MultiLayerPerceptron
+from layer import FactorizationMachine, FeaturesEmbedding, FeaturesLinear, MultiLayerPerceptron
 
 
 class DeepFactorizationMachineModel(torch.nn.Module):
@@ -18,11 +19,17 @@ class DeepFactorizationMachineModel(torch.nn.Module):
         self.embedding = FeaturesEmbedding(field_dims, embed_dim)
         self.embed_output_dim = len(field_dims) * embed_dim
         self.mlp = MultiLayerPerceptron(self.embed_output_dim, mlp_dims, dropout)
+        self.linear_out = nn.Linear(in_features=9, out_features=3)
 
     def forward(self, x):
         """
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
+        # TODO split embeddings and features
         embed_x = self.embedding(x)
-        x = self.linear(x) + self.fm(embed_x) + self.mlp(embed_x.view(-1, self.embed_output_dim))
-        return torch.softmax(x.squeeze(1))
+        linear = self.linear(x)
+        FM = self.fm(embed_x)
+        MLP = self.mlp(embed_x.view(-1, self.embed_output_dim))
+        x = torch.cat([linear, FM, MLP], axis=1)
+        out = self.linear_out(x)
+        return x

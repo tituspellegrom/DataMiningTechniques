@@ -5,74 +5,52 @@ from model import DeepFactorizationMachineModel
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GroupShuffleSplit
-import time
-import numpy as np
-import torch.utils.data as data_utils
-import scipy
+from data import SparseDataset
+from torch.utils.data import DataLoader
+import csv
+from tqdm import tqdm
 
 def get_from_files():
     print('Importing data...')
-    with open("embedding_dims.txt", "rb") as fp:
-        embedding_dims = pickle.load(fp)
+    with open("df_temporary_embedding_dims.csv", "r") as fp:
+        embedding_dims = list(csv.reader(fp))
 
     with open("groups.txt", "rb") as fp:
         groups = pickle.load(fp)
 
-    data = pd.read_pickle('data_merged.pkl')
-
     print('Done')
-    return data, embedding_dims, groups
 
-def dataframe_to_sparse(df):
-    data_sub = df.iloc[0:10000]
-    scipy.sparse.csr_matrix(df.values)
+    embedding_dims = [int(emb) for emb in embedding_dims[0]]
+    return embedding_dims, groups
 
-
-def get_dataloaders(data, groups):
-    print('creating loaders')
-    X = data.iloc[:,:-1]
-
-    X_indices = np.arange(0, len(X))
-    y = data.iloc[:,-1:]
-    train = data_utils.TensorDataset(torch.Tensor(np.array(X)), torch.Tensor(np.array(y)))
-    train_length = len(X)*0.9
-    val_length = len(X)-train_length
-    trainset, valset = torch.utils.data.random_split(train, [train_length, val_length])
-    # gss = GroupShuffleSplit(n_splits=1, train_size=.7, random_state=42)
-    # trainset, testset = gss.split(X, y, groups)
-    # print('train test set')
-    # X_train, X_test, y_train, y_test = train_test_split(X_indices, y, random_state=42, test_size=0.1)
-    #
-    # X_train = X[X_train]
-    # X_test = X[X_test]
-
-    print('Creating dataloaders...')
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=64,
-                                              shuffle=True)
-    testloader = torch.utils.data.DataLoader(valset, batch_size=64,
-                                             shuffle=False)
-
-    print('Done')
-    return trainloader, testloader
 
 def main():
-    # data_merged, embedding_dims, groups = preprocess()
-    data_merged, embedding_dims, groups = get_from_files()
-    trainloader, testloader = get_dataloaders(data_merged, groups)
+    embedding_dims, groups = get_from_files()
+    dataset = SparseDataset('df_temporary_data_merged.npz')
+    trainloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
-    mlp_dims = [32, 32]
-    model = DeepFactorizationMachineModel(embedding_dims, 4, mlp_dims, 0.5)
+    if torch.cuda.is_available():
+        device = "cuda:0"
+    else:
+        device = "cpu"
+
+    mlp_dims = [200, 200, 200]
+
+    TEMP_embedding_dims = [332786, 35, 232, 231, 140822, 28417]
+    # TODO correct retrieval of embedding dims (should be max + 1)
+    model = DeepFactorizationMachineModel(TEMP_embedding_dims, 4, mlp_dims, 0.5)
+    model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.003)
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
 
     for epoch in range(2):  # loop over the dataset multiple times
-
         running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
+        for i, data in enumerate(tqdm(trainloader, 0)):
+
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
+            inputs = inputs.to(device)
+            labels = labels.type(torch.LongTensor).to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -90,23 +68,25 @@ def main():
                       (epoch + 1, i + 1, running_loss / 2000))
                 running_loss = 0.0
 
+            # TODO validation loss
+
     print('Finished Training')
 
     correct = 0
     total = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
-    with torch.no_grad():
-        for data in testloader:
-            inputs, labels = data
-            # calculate outputs by running images through the network
-            outputs = model(input)
-            # the class with the highest energy is what we choose as prediction
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    print('Accuracy of the network on the 10000 test images: %d %%' % (
-            100 * correct / total))
+    # with torch.no_grad():
+    #     for data in testloader:
+    #         inputs, labels = data
+    #         # calculate outputs by running images through the network
+    #         outputs = model(input)
+    #         # the class with the highest energy is what we choose as prediction
+    #         _, predicted = torch.max(outputs.data, 1)
+    #         total += labels.size(0)
+    #         correct += (predicted == labels).sum().item()
+    #
+    # print('Accuracy of the network on the 10000 test images: %d %%' % (
+    #         100 * correct / total))
 
 if __name__ == '__main__':
     main()

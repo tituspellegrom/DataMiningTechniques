@@ -5,7 +5,7 @@ import gc
 import pickle
 from sklearn.preprocessing import OneHotEncoder
 import scipy.sparse as sp
-
+from sklearn.model_selection import GroupShuffleSplit
 
 def create_label_column(df):
     df['label'] = 0
@@ -118,6 +118,7 @@ def one_hot_encode2(X):
         X_enc_list += [X_i_enc]
 
     X_enc = sp.hstack(X_enc_list)
+
     ids_dims = [X_enc.shape[1] for X_enc in X_enc_list]
 
     return X_enc, ids_dims
@@ -132,7 +133,9 @@ def preprocess2(data_name):
 
     print('Loading data...')
 
-    df = pd.read_pickle(f'../{data_name}.pkl')
+    # df = pd.read_pickle(f'../{data_name}.pkl')
+    df = pd.read_pickle(f'{data_name}.pkl')
+
     groups = df['srch_id'].to_numpy()
 
     # id_cols = ['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id', 'srch_destination_id']
@@ -148,10 +151,15 @@ def preprocess2(data_name):
     X_ids = df[id_cols].to_numpy()
 
     X_ids_enc, ids_dims = one_hot_encode2(X_ids)
-    X_enc = sp.hstack([X_non_ids.astype(float), X_ids_enc.astype(float), X_label.astype(float)])
+    X_enc = sp.hstack([X_non_ids.astype(float), X_ids_enc.astype(float), X_label.astype(float)]) #waarom label en encodings een float?
 
-    non_ids_dims = [1] * X_non_ids.shape[1]
-    embedding_dims = np.array(non_ids_dims+ids_dims+[1]) # label also dimension 1 => is this needed?
+    # train_inds, test_inds = next(GroupShuffleSplit(test_size=.20, n_splits=2, random_state=7).split(X_enc, groups=X_enc[:]))
+    #
+    # train = df.iloc[train_inds]
+    # test = df.iloc[test_inds]
+
+    non_ids_dims = [1] * (X_non_ids.shape[1]-1)
+    embedding_dims = np.array(non_ids_dims+ids_dims)
 
     sp.save_npz(f'{data_name}_data_merged.npz', X_enc)
     embedding_dims.tofile(f'{data_name}_embedding_dims.csv', sep=',')
@@ -210,6 +218,6 @@ def preprocess():
 
 
 if __name__ == '__main__':
-    #preprocess2('df_temporary')
-    preprocess2('df_features')
+    preprocess2('df_temporary')
+    # preprocess2('df_features')
 
