@@ -7,6 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 import scipy.sparse as sp
 from sklearn.model_selection import GroupShuffleSplit
 
+
 def create_label_column(df):
     df['label'] = 0
     book_indices = df['booking_bool'] == 1
@@ -135,6 +136,8 @@ def preprocess2(data_name, one_hot_encode=True):
     # df = pd.read_pickle(f'{data_name}.pkl')
 
     groups = df['srch_id'].to_numpy()
+    groups.tofile(f'{data_name}_groups.csv', sep=',')
+    np.save(f'{data_name}_groups.npy', groups)  # faster loading
 
     # id_cols = ['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id', 'srch_destination_id']
     # pd.DataFrame(id_cols, columns=['id_columns']).to_csv(f'{data_name}_idcols.csv', index=False)
@@ -145,6 +148,7 @@ def preprocess2(data_name, one_hot_encode=True):
     if not one_hot_encode:
         X = np.hstack([df.to_numpy(), X_label])
         np.save(f'{data_name}_nonhot.npy', X)
+
         return X
 
     id_cols = pd.read_csv(f'{data_name}_idcols.csv')['id_columns'].values.tolist()
@@ -166,7 +170,7 @@ def preprocess2(data_name, one_hot_encode=True):
 
     sp.save_npz(f'{data_name}_data_merged.npz', X_enc)
     embedding_dims.tofile(f'{data_name}_embedding_dims.csv', sep=',')
-    groups.tofile(f'{data_name}_groups.csv', sep=',')
+
 
     # TODO: Feature scaling
 
@@ -203,7 +207,6 @@ def preprocess():
     print('Saving data...')
 
     data_merged.to_pickle('data_merged.pkl')
-
 
     # add feature dims of non_id_cols, this is alway one
     embedding_dims = [1]*len(non_id_cols)
