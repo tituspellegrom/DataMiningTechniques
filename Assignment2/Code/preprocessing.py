@@ -124,17 +124,15 @@ def one_hot_encode2(X):
     return X_enc, ids_dims
 
 
-def preprocess2(data_name):
+def preprocess2(data_name, one_hot_encode=True):
     '''
     Preprocesses the input data to a dataframe with all id columns one-hot encoded
     :return: DataFrame with features and one-hot encoded categories. List of embedding dimensions needed for DeepFM
     '''
-    # TODO: variable to ignore onehotencodings (some models can't handle sparse data)
-
     print('Loading data...')
 
-    # df = pd.read_pickle(f'../{data_name}.pkl')
-    df = pd.read_pickle(f'{data_name}.pkl')
+    df = pd.read_pickle(f'../{data_name}.pkl')
+    # df = pd.read_pickle(f'{data_name}.pkl')
 
     groups = df['srch_id'].to_numpy()
 
@@ -143,6 +141,11 @@ def preprocess2(data_name):
 
     X_label = create_label_column2(df).reshape(-1, 1)
     df.drop(['click_bool', 'booking_bool', 'date_time'], axis=1, inplace=True)
+
+    if not one_hot_encode:
+        X = np.hstack([df.to_numpy(), X_label])
+        np.save(f'{data_name}_nonhot.npy', X)
+        return X
 
     id_cols = pd.read_csv(f'{data_name}_idcols.csv')['id_columns'].values.tolist()
     non_id_cols = list(set(df.columns) - set(id_cols))
@@ -218,6 +221,7 @@ def preprocess():
 
 
 if __name__ == '__main__':
-    preprocess2('df_temporary')
+    # preprocess2('df_temporary')
+    preprocess2('df_temporary', one_hot_encode=False)
     # preprocess2('df_features')
 
