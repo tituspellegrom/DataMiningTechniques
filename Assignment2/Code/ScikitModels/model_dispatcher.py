@@ -138,17 +138,33 @@ def prepare_classifier(classifier, model_params, hyper_opt=False):
     return clf
 
 
+def train_models(X_train, y_train, clfs, parallel=False):
+    if parallel:
+        with joblib.parallel_backend('dask'):
+            for clf in tqdm(clfs):
+                print(f"Fitting: {type(clf)}")
+                clf.fit(X_train, y_train)
+    else:
+        for clf in tqdm(clfs):
+            print(f"Fitting: {type(clf)}")
+            clf.fit(X_train, y_train)
+
+
 def main():
     from model_parameters import params
+
+    DATASET_NAME = 'df_temporary'
 
     client = Client(processes=False)    # processes = False ensures shared memory
 
     classifiers = obtain_scikit_classifiers()
-    slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier']
-    clfs_nt = list(filter(lambda classifier: classifier.name not in slow_models, classifiers))
+    slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier', 'MLPClassifier']
+    intractable_models = ['GaussianProcessClassifier', 'LabelPropagation', 'LabelSpreading']
+    clfs_nt = list(filter(lambda clf_nt: clf_nt.name not in slow_models + intractable_models,
+                          classifiers))
 
     dense_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is False, clfs_nt))
-    sparse_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is False, clfs_nt))
+    sparse_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is True, clfs_nt))
 
     dense_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
                   for clf_nt in dense_clfs_nt]
@@ -156,59 +172,29 @@ def main():
     sparse_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
                    for clf_nt in sparse_clfs_nt]
 
-    # Train dense models in parallel
-    with joblib.parallel_backend('dask'):
-        X_train, X_test, y_train, y_test = prepare_data_nonhot('df_temporary')
+    # TODO: create function
+    X_train, X_test, y_train, y_test = prepare_data_nonhot(DATASET_NAME)
+    train_models(X_train, y_train, dense_clfs, parallel=False)
 
-        for clf in dense_clfs:
-            clf.fit(X_train, y_train)
-
+    # QuadraticDiscriminanAnalysis predicts NaNs => because of collinear?
     for clf_nt, clf in zip(dense_clfs_nt, dense_clfs):
-        y_prob = clf.predict_proba(X_test)
+        # TODO: wrap CalibratedClassifierCV if needed and activate predict_proba()
+        if clf_nt.proba_support:
+            y_prob = clf.predict_proba(X_test)
         score = clf.score(X_test, y_test)
         save_model(clf, model_name=clf_nt.name)
 
-    # Train sparse models in parallel
-    with joblib.parallel_backend('dask'):
-        X_train, X_test, y_train, y_test = prepare_data('df_temporary')
-
-        for clf in sparse_clfs:
-            clf.fit(X_train, y_train)
-
+    X_train, X_test, y_train, y_test = prepare_data(DATASET_NAME)
+    train_models(X_train, y_train, sparse_clfs, parallel=False)
     for clf_nt, clf in zip(sparse_clfs_nt, sparse_clfs):
-        y_prob = clf.predict_proba(X_test)
+        # TODO: wrap CalibratedClassifierCV if needed and activate predict_proba()
+        if clf_nt.proba_support:
+            y_prob = clf.predict_proba(X_test)
         score = clf.score(X_test, y_test)
         save_model(clf, model_name=clf_nt.name)
+
 
     # TODO: use some voting ensemble for best models
-
-    # for classifier in tqdm(classifiers):
-    #
-    #     # reload every loop to avoid memory persisting
-    #     if classifier.sparse_support:
-    #         X_train, X_test, y_train, y_test = prepare_data('df_temporary')
-    #     else:
-    #         X_train, X_test, y_train, y_test = prepare_data_nonhot('df_temporary')
-    #
-    #     clf = prepare_classifier(classifier, )
-    #
-    #     y_prob = clf.predict_proba(X_test)
-    #     score = clf.score(X_test, y_test)
-    #
-    #     print(f"{classifier.name}: {score}")
-    #
-    #     del X_train, X_test, y_train, y_test
-    #     gc.collect()
-    #     time.sleep(5)
-
-        # # this doesn't work
-        # # with joblib.parallel_backend('dask'):
-        # clf.fit(X_train, y_train)
-        #
-        # # TODO: wrap CalibratedClassifierCV if needed and activate predict_proba()
-        # save_model(clf, model_name=classifier.name)
-        #
-        # return clf
 
 
 if __name__ == '__main__':
