@@ -14,6 +14,7 @@ from dask.diagnostics import ProgressBar
 import gc
 import time
 import dill
+from collections import ChainMap
 
 from collections import namedtuple
 
@@ -35,7 +36,10 @@ Classifier = namedtuple('Classifier', 'name scikit_class sparse_support dask_sup
 
 def obtain_scikit_classifiers(verbose=True, skip_classifiers={'ClassifierChain', 'MultiOutputClassifier',
                                                               'StackingClassifier', 'VotingClassifier',
-                                                              'CategoricalNB'},
+                                                              'CategoricalNB', 'CalibratedClassifierCV',
+                                                              'MultinomialNB', 'OneVsOneClassifier',
+                                                              'OneVsRestClassifier', 'OutputCodeClassifier',
+                                                              },
                               scikit_inconsistent_sparse={'CategoricalNB'}):
 
     estimators = all_estimators(type_filter='classifier')
@@ -82,7 +86,7 @@ def prepare_data(input_file_name):
     non_embedded = np.sum(embedding_dims[:-1] == 1)
 
     # TODO: keep searches together
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99, random_state=1)
 
     sc_X = MaxAbsScaler()
 
@@ -101,7 +105,7 @@ def prepare_data_nonhot(input_file_name):
     time.sleep(5)  # give gc some time
 
     # TODO: keep searches together
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99, random_state=1)
 
     sc_X = MinMaxScaler()
     X_train = sc_X.fit_transform(X_train)
@@ -113,7 +117,10 @@ def prepare_data_nonhot(input_file_name):
 def train_classifier(classifier, X_train, y_train, model_params, hyper_opt=False):
     print(f"Fitting {classifier.name}")
 
-    cl = classifier.scikit_class(**model_params.get('default_params', dict()))
+    default_params = model_params.get('default_params', dict())
+    hyper_params = model_params.get('hyper_params', dict())
+
+    cl = classifier.scikit_class(**default_params)
 
     # TODO: use truly chunked
     # if classifier.dask_support:
@@ -126,8 +133,9 @@ def train_classifier(classifier, X_train, y_train, model_params, hyper_opt=False
     #     cl.fit(X_train, y_train)
 
     if hyper_opt:
-        hyper_params = model_params.get('hyper_params', dict())
-        cl = GridSearchCV(cl, hyper_params)
+        hyper_params_incl_default = [{**default_params, **hyper_dict}
+                                     for hyper_dict in hyper_params]
+        cl = GridSearchCV(cl, hyper_params_incl_default)
 
     cl.fit(X_train, y_train)
 
@@ -144,7 +152,12 @@ def main():
 
     classifiers = obtain_scikit_classifiers()
 
+    slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier']
+
     for classifier in tqdm(classifiers):
+        # ignore for now
+        if classifier.name in slow_models:
+            continue
 
         # reload every loop to avoid memory persisting
         if classifier.sparse_support:
@@ -153,7 +166,7 @@ def main():
             X_train, X_test, y_train, y_test = prepare_data_nonhot('../df_temporary_nonhot.npy')
 
         cl = train_classifier(classifier, X_train, y_train,
-                              model_params=params.get(classifier.name, dict()), hyper_opt=False)
+                              model_params=params.get(classifier.name, dict()), hyper_opt=True)
         y_prob = cl.predict_proba(X_test)
         score = cl.score(X_test, y_test)
 
