@@ -6,7 +6,7 @@ import torch.nn as nn
 
 class FeaturesLinear(torch.nn.Module):
 
-    def __init__(self, field_dims, output_dim=1):
+    def __init__(self, field_dims, linear_in, output_dim=1):
         super().__init__()
         # self.fc = torch.nn.Embedding(sum(field_dims), output_dim)
         # self.bias = torch.nn.Parameter(torch.zeros((output_dim,)))
@@ -14,19 +14,19 @@ class FeaturesLinear(torch.nn.Module):
         self.embeddings = nn.ModuleList(
             [nn.Embedding(field_dim, output_dim) for field_dim in field_dims])
         self.output_dim = len(field_dims) * output_dim
-        self.linear = nn.Linear(in_features=self.output_dim, out_features=1)
+        self.linear = nn.Linear(in_features=linear_in, out_features=1)
 
-    def forward(self, x):
+    def forward(self, x_cat, x_feat):
         """
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
-        # TODO split embeddings and features and then concat
-        x = x.squeeze(1)
+
         # embeddings_list = [emb(x[:, self.offsets[i]:self.offsets[i+1]]) for i, emb in enumerate(self.embeddings)]
-        embeddings_list = [emb(x[:, i]) for i, emb in enumerate(self.embeddings)]
+        embeddings_list = [emb(x_cat[:, i]) for i, emb in enumerate(self.embeddings)]
 
         embeddings = torch.cat(embeddings_list, 1)
-        out = self.linear(embeddings)
+        out = torch.cat([embeddings, x_feat], dim=1)
+        out = self.linear(out)
 
         return out
 
@@ -49,8 +49,6 @@ class FeaturesEmbedding(torch.nn.Module):
         """
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
-        x = x.squeeze(1)
-
         embeddings_list = []
         for i, emb in enumerate(self.embeddings):
             try:
@@ -60,7 +58,7 @@ class FeaturesEmbedding(torch.nn.Module):
                 print('X:', x[:, i])
                 print('COl:',i)
 
-        embeddings = torch.cat(embeddings_list).reshape(x.shape[0], x.shape[1], -1)
+        embeddings = torch.cat(embeddings_list).reshape(x.shape[0], -1)
 
 
         # x = x + x.new_tensor(self.offsets).unsqueeze(0)
