@@ -16,6 +16,7 @@ import time
 import dill
 from collections import ChainMap
 import joblib
+import gzip
 
 from collections import namedtuple
 
@@ -82,16 +83,20 @@ def prepare_data(dataset_name):
     del arr
     gc.collect()
 
-    X_train, X_test = arr_train[:, :-1], arr_test[:, :-1]
+    X_train = arr_train[:, :-1]
     y_train = np.ravel(arr_train[:, -1].todense(), 'C')
+    groups_train = groups[idx_train]
+
+    X_test = arr_test[:, :-1]
     y_test = np.ravel(arr_test[:, -1].todense(), 'C')
+    groups_test = groups[idx_test]
 
     sc_X = MaxAbsScaler()
 
     X_train[:, :non_embedded] = sc_X.fit_transform(X_train[:, :non_embedded])
     X_test[:, :non_embedded] = sc_X.transform(X_test[:, :non_embedded])
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, groups_train, groups_test
 
 
 def split_groups(arr, groups):
@@ -108,18 +113,24 @@ def prepare_data_nonhot(dataset_name):
     groups = np.load(f"../{dataset_name}_groups.npy")
 
     arr_train, arr_test, idx_train, idx_test = split_groups(arr, groups)
+
     del arr
     gc.collect()
+    time.sleep(5)
 
-    X_train, X_test = arr_train[:, :-1], arr_test[:, :-1]
+    X_train= arr_train[:, :-1]
     y_train = np.ravel(arr_train[:, -1], 'C')
+    groups_train = groups[idx_train]
+
+    X_test = arr_test[:, :-1]
     y_test = np.ravel(arr_test[:, -1], 'C')
+    groups_test = groups[idx_test]
 
     sc_X = MinMaxScaler()
     X_train = sc_X.fit_transform(X_train)
     X_test = sc_X.transform(X_test)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, groups_train, groups_test
 
 
 def prepare_classifier(classifier, model_params, hyper_opt=False):
@@ -138,16 +149,42 @@ def prepare_classifier(classifier, model_params, hyper_opt=False):
     return clf
 
 
-def train_models(X_train, y_train, clfs, parallel=False):
-    if parallel:
-        with joblib.parallel_backend('dask'):
-            for clf in tqdm(clfs):
-                print(f"Fitting: {type(clf)}")
-                clf.fit(X_train, y_train)
-    else:
-        for clf in tqdm(clfs):
-            print(f"Fitting: {type(clf)}")
-            clf.fit(X_train, y_train)
+def save_npy_gzip(file_name, arr):
+    with gzip.GzipFile(file_name+'.gz', "w") as f:
+        np.save(f, arr)
+
+
+def load_npy_gzip(file_name):
+    with gzip.GzipFile(file_name, 'r') as f:
+        arr = np.load(f)
+
+    return arr
+
+
+def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train, groups_test, dataset_name):
+    # TODO: control memory usage => https://stackoverflow.com/questions/24406937/scikit-learn-joblib-bug-multiprocessing-pool-self-value-out-of-range-for-i-fo
+    # https://github.com/scikit-learn/scikit-learn/issues/936
+
+    save_npy_gzip(f"test_predictions/{dataset_name}_srchgroups.npy", groups_test)
+    save_npy_gzip(f"test_predictions/{dataset_name}_testlabels.npy", groups_test)
+
+    for clf_nt, clf in tqdm(zip(clfs_nt, clfs)):
+        print(f"Fitting: {type(clf)}")
+        # if parallel:
+        #     with joblib.parallel_backend('dask'):
+        #         clf.fit(X_train, y_train)
+        #     continue
+        clf.fit(X_train, y_train)
+
+        # TODO: wrap CalibratedClassifierCV if no predict_proba()
+        if clf_nt.proba_support:
+            y_prob = clf.predict_proba(X_test)
+            save_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy", y_prob)
+            # arr = load_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy.gz")
+            # print(arr)
+
+        score = clf.score(X_test, y_test)
+        save_model(clf, model_name=clf_nt.name)
 
 
 def main():
@@ -155,7 +192,7 @@ def main():
 
     DATASET_NAME = 'df_temporary'
 
-    client = Client(processes=False)    # processes = False ensures shared memory
+    client = Client(processes=False)
 
     classifiers = obtain_scikit_classifiers()
     slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier', 'MLPClassifier']
@@ -169,59 +206,29 @@ def main():
     dense_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
                   for clf_nt in dense_clfs_nt]
 
+    # This takes way to long => use dense input for all models?
     sparse_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
                    for clf_nt in sparse_clfs_nt]
 
-    # TODO: create function
-    X_train, X_test, y_train, y_test = prepare_data_nonhot(DATASET_NAME)
-    train_models(X_train, y_train, dense_clfs, parallel=False)
-
     # QuadraticDiscriminanAnalysis predicts NaNs => because of collinear?
-    for clf_nt, clf in zip(dense_clfs_nt, dense_clfs):
-        # TODO: wrap CalibratedClassifierCV if needed and activate predict_proba()
-        if clf_nt.proba_support:
-            y_prob = clf.predict_proba(X_test)
-        score = clf.score(X_test, y_test)
-        save_model(clf, model_name=clf_nt.name)
-
-    X_train, X_test, y_train, y_test = prepare_data(DATASET_NAME)
-    train_models(X_train, y_train, sparse_clfs, parallel=False)
-    for clf_nt, clf in zip(sparse_clfs_nt, sparse_clfs):
-        # TODO: wrap CalibratedClassifierCV if needed and activate predict_proba()
-        if clf_nt.proba_support:
-            y_prob = clf.predict_proba(X_test)
-        score = clf.score(X_test, y_test)
-        save_model(clf, model_name=clf_nt.name)
-
+    train_and_save(dense_clfs_nt, dense_clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense')
+    train_and_save(sparse_clfs_nt, sparse_clfs, *prepare_data(DATASET_NAME), dataset_name=DATASET_NAME+'_sparse')
 
     # TODO: use some voting ensemble for best models
+    # TODO: HyperOpt best models
 
 
 if __name__ == '__main__':
     main()
 
 
-# classifiers = [
-#     KNeighborsClassifier(3),
-#     SVC(kernel="linear", C=0.025),
-#     SVC(gamma=2, C=1),
-#     GaussianProcessClassifier(1.0 * RBF(1.0)),
-#     DecisionTreeClassifier(max_depth=5),
-#     RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-#     MLPClassifier(alpha=1, max_iter=1000),
-#     AdaBoostClassifier(),
-#     GaussianNB(),
-#     QuadraticDiscriminantAnalysis()]
-
-
-
-    # TODO: use truly chunked
-    # if classifier.dask_support:
-    #     # parallel_X_train = da.from_array(X_train, (1_000, X_train.shape[1]))
-    #     # parallel_y_train = da.from_array(y_train, (1_000, y_train.shape[1]))
-    #     cl = Incremental(cl)
-    #     with ProgressBar():
-    #         cl.fit(X_train, y_train, classes=(0, 1, 5))    # dask needs classes explicit
-    # else:
-    #     cl.fit(X_train, y_train)
+# TODO: use truly chunked
+# if classifier.dask_support:
+#     # parallel_X_train = da.from_array(X_train, (1_000, X_train.shape[1]))
+#     # parallel_y_train = da.from_array(y_train, (1_000, y_train.shape[1]))
+#     cl = Incremental(cl)
+#     with ProgressBar():
+#         cl.fit(X_train, y_train, classes=(0, 1, 5))    # dask needs classes explicit
+# else:
+#     cl.fit(X_train, y_train)
 
