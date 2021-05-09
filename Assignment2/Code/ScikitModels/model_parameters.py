@@ -1,3 +1,5 @@
+from itertools import permutations
+
 params = {'AdaBoostClassifier': {
               'default_params': {},
               'hyper_params': [
@@ -34,6 +36,24 @@ params = {'AdaBoostClassifier': {
                   }
               ]
           },
+          'DecisionTreeClassifier': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'criterion': ['gini', 'entropy'],
+                      'splitter': ['best', 'random'],
+                      'max_features': ['auto', 'sqrt', 'log2']
+                  }
+              ]
+          },
+          'DummyClassifier': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'strategy': ['stratified', 'most_frequent', 'prior', 'uniform'],
+                  }
+              ]
+          },
           'ExtraTreesClassifier': {
               'default_params': {},
               'hyper_params': [
@@ -43,6 +63,22 @@ params = {'AdaBoostClassifier': {
                       'max_features': ['auto', 'sqrt', 'log2'],
                       'bootstrap': [False, True]
                   }
+              ]
+          },
+          'GaussianNB': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'var_smoothing': [10**-9, 10**-8, 10**-7, 10**-6, 10**-5, 10**-4, 10**-3, 10**-2],
+                  }
+              ]
+          },
+          'GaussianProcessClassifier': {
+              'default_params': {
+                  'copy_X_train': False
+              },
+              'hyper_params': [
+                  {}
               ]
           },
           'GradientBoostingClassifier': {
@@ -60,6 +96,17 @@ params = {'AdaBoostClassifier': {
                   }
               ]
           },
+          'HistGradientBoostingClassifier': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'loss': ['auto', 'binary_crossentropy', 'categorical_crossentropy'],
+                      'learning_rate': [.2, .4, .6, .8, 1., 1.2, 1.4, 1.6, 1.8, 2.],
+                      'l2_regularization': [.1, .2, 3., .4, .5, .6, .7, .8, .9, 1.],
+                      'max_depth': list(range(2, 10, 1))
+                  }
+              ]
+          },
           'KNeighborsClassifier': {
               'default_params': {},
               'hyper_params': [
@@ -69,6 +116,40 @@ params = {'AdaBoostClassifier': {
                         'leaf_size': list(range(10, 50, 5)),
                         'p': list(range(4))
                   }]
+          },
+          'LabelPropagation': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                        'kernel': ['rbf'],
+                        'gamma': list(range(1, 100, 5))
+                  },
+                  {
+                        'kernel': ['knn'],
+                        'gamma': list(range(1, 25, 1))
+                  }
+              ]
+          },
+          'LabelSpreading': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'kernel': ['rbf'],
+                      'gamma': list(range(1, 100, 5)),
+                      'alpha': [0., .2, .4, .6, .8, 1.]
+                  },
+                  {
+                      'kernel': ['knn'],
+                      'gamma': list(range(1, 25, 1)),
+                      'alpha': [0., .2, .4, .6, .8, 1.]
+                  }
+              ]
+          },
+          'LinearDiscriminantAnalysis': {
+              'default_params': {},
+              'hyper_params': [
+                  {}
+              ]
           },
           'LinearSVC': {
               'default_params': {},
@@ -109,6 +190,17 @@ params = {'AdaBoostClassifier': {
                   }
               ]
           },
+          'MLPClassifier': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'hidden_layer_size':
+                          [list(permutations(list(range(50, 250, 50)), i))
+                           for i in range(1, 4)],
+                      'alpha': [0.0001, 0.0003, 0.0005, 0.0007, 0.0009]
+                  }
+              ]
+          },
           'NearestCentroid': {
               'default_params': {},
               'hyper_params': []
@@ -143,6 +235,21 @@ params = {'AdaBoostClassifier': {
                   },
               ]
           },
+          'Perceptron': {
+              'default_params': {},
+              'hyper_params': [
+                  {
+                      'penalty': ['l2', 'l1', 'elasticnet', None],
+                      'early_stopping': [False, True]
+                  }
+              ]
+          },
+          'QuadraticDiscriminantAnalysis': {
+              'default_params': {},
+              'hyper_params': [
+                  {}
+              ]
+          },
           'RadiusNeighborsClassifier': {
               'default_params': {},
               'hyper_params': [
@@ -165,6 +272,32 @@ params = {'AdaBoostClassifier': {
                       'bootstrap': [False, True]
                   }
               ]
+          },
+          'RidgeClassifier': {
+            'default_params': {},
+            'hyper_params': [
+                {
+                    'alpha': [.1, .5, 1., 1.5, 2., 5., 10.],
+                    'solver': ['saga']
+                }
+            ]
+          },
+          'RidgeClassifierCV': {
+            'default_params': {},
+            'hyper_params': [
+                {
+                }
+            ]
+          },
+          'SGDClassifier': {
+            'default_params': {},
+            'hyper_params': [
+                {
+                    'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'],
+                    'penalty': ['l2', 'l1', 'elasticnet'],
+                    'early_stopping': [False, True]
+                }
+            ]
           },
           'SVC': {
               'default_params': {

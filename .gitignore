@@ -23,8 +23,11 @@ Assignment2/Code/Neural Collaborative Filtering/checkpoints
 Assignment2/Code/Neural Collaborative Filtering/results
 Assignment2/Code/Neural Collaborative Filtering/runs
 Assignment2/Code/Neural Collaborative Filtering/pics
-*.pkl
+Assignment2/Code/*.pkl
 Assignment2/Code/*.csv
 Assignment2/Code/*.txt
 *.npz
 Assignment2/Code/Data
+Assignment2/Code/*.npz
+Assignment2/*.pkl
+Assignment2/*.npz
