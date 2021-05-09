@@ -33,9 +33,19 @@ def test_load():
     return df
 
 class SparseDataset(Dataset):
-    def __init__(self, filename):
+    def __init__(self, data_name, train, path=None):
         # self.samples = sp.load_npz(filename).tocsr()
-        self.samples = test_load()
+        if train == True:
+            if path ==None:
+                self.samples = pd.read_pickle(f'{data_name}_train.csv')
+            else:
+                self.samples = pd.read_pickle(f'{path+data_name}_train.csv')
+        else:
+            if path==None:
+                self.samples = pd.read_pickle(f'{data_name}_train.csv')
+            else:
+                self.samples = pd.read_pickle(f'{path+data_name}_train.csv')
+
     def __len__(self):
         return self.samples.shape[0]
 
@@ -44,8 +54,8 @@ class SparseDataset(Dataset):
 
         categories = torch.LongTensor(item[15:])
         features = item[:15]
-        x_normed = x / x.max(axis=0)
-        label = item[13]
+        input = torch.hstack(categories, features)
+        label = item[-1:]
 
         return input, label
 

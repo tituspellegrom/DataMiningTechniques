@@ -11,7 +11,7 @@ import csv
 from tqdm import tqdm
 
 def get_from_files():
-    with open("embedding_dims.txt", "rb") as fp:
+    with open("Data/embedding_dims.txt", "rb") as fp:
         embedding_dims = pickle.load(fp)
 
     return embedding_dims
@@ -60,7 +60,7 @@ def main():
     mlp_dims = [200, 200, 200]
     num_feature_columns = 14
 
-    model = DeepFactorizationMachineModel(embedding_dims, 4, mlp_dims, 0.5, num_feature_columns=num_feature_columns)
+    model = DeepFactorizationMachineModel(embedding_dims, 10, mlp_dims, 0.5, num_feature_columns=num_feature_columns)
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
