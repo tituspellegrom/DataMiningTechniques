@@ -39,5 +39,6 @@ class DeepFactorizationMachineModel(torch.nn.Module):
         FM = self.fm(x_emb)
         MLP = self.mlp(x_emb.view(-1, self.embed_output_dim))
         x = torch.cat([linear, FM, MLP], axis=1)
-        out = F.softmax(self.linear_out(x), dim=0)
+        # out = F.softmax(self.linear_out(x), dim=0)
+        out = self.linear_out(x)
         return out

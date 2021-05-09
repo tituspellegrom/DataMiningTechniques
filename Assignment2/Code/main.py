@@ -29,7 +29,7 @@ def multi_acc(y_pred, y_test):
 
 def computeValidationLoss(device, net, criterion, valloader):
     val_loss=0.0
-    for i, data in enumerate(valloader):
+    for i, data in enumerate(tqdm(valloader)):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data[0].to(device), data[1].to(device)
 
@@ -44,8 +44,8 @@ def computeValidationLoss(device, net, criterion, valloader):
 
 def main():
     embedding_dims = get_from_files()
-    trainset = ExpediaDataset(train=True, filename='df_temporary')
-    valset = ExpediaDataset(train=False, filename='df_temporary')
+    trainset = ExpediaDataset(train=True, data_name='df_temporary')
+    valset = ExpediaDataset(train=False, data_name='df_temporary')
 
     train_loader = DataLoader(trainset, batch_size=128, shuffle=True)
     val_loader = DataLoader(valset, batch_size=128, shuffle=True)
@@ -57,15 +57,15 @@ def main():
         device = "cpu"
 
 
-    mlp_dims = [200, 200, 200]
+    mlp_dims = [200,200,200]
     num_feature_columns = 14
 
-    model = DeepFactorizationMachineModel(embedding_dims, 10, mlp_dims, 0.5, num_feature_columns=num_feature_columns)
+    model = DeepFactorizationMachineModel(embedding_dims, 4, mlp_dims, 0.5, num_feature_columns=num_feature_columns)
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    for epoch in range(2):  # loop over the dataset multiple times
+    for epoch in range(10):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(tqdm(train_loader, 0)):
 

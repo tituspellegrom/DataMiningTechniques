@@ -32,19 +32,19 @@ def test_load():
     df = df.reindex(columns=df_cols)
     return df
 
-class SparseDataset(Dataset):
+class ExpediaDataset(Dataset):
     def __init__(self, data_name, train, path=None):
         # self.samples = sp.load_npz(filename).tocsr()
         if train == True:
             if path ==None:
-                self.samples = pd.read_pickle(f'{data_name}_train.csv')
+                self.samples = pd.read_pickle(f'Data/{data_name}_train.pkl')
             else:
-                self.samples = pd.read_pickle(f'{path+data_name}_train.csv')
+                self.samples = pd.read_pickle(f'{path+data_name}_train.pkl')
         else:
             if path==None:
-                self.samples = pd.read_pickle(f'{data_name}_train.csv')
+                self.samples = pd.read_pickle(f'Data/{data_name}_val.pkl')
             else:
-                self.samples = pd.read_pickle(f'{path+data_name}_train.csv')
+                self.samples = pd.read_pickle(f'{path+data_name}_val.pkl')
 
     def __len__(self):
         return self.samples.shape[0]
@@ -52,9 +52,9 @@ class SparseDataset(Dataset):
     def __getitem__(self, idx):
         item = self.samples.iloc[idx].values
 
-        categories = torch.LongTensor(item[15:])
-        features = item[:15]
-        input = torch.hstack(categories, features)
+        categories = torch.Tensor(item[14:-1])
+        features = torch.Tensor(item[:14])
+        input = torch.hstack([categories, features])
         label = item[-1:]
 
         return input, label
