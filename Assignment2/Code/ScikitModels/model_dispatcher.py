@@ -109,7 +109,7 @@ def split_groups(arr, groups):
 
 
 def prepare_data_nonhot(dataset_name):
-    arr = np.load(f"../{dataset_name}_nonhot.npy")
+    arr = np.load(f"../{dataset_name}_nonhot.npy", allow_pickle=True)
     groups = np.load(f"../{dataset_name}_groups.npy")
 
     arr_train, arr_test, idx_train, idx_test = split_groups(arr, groups)
@@ -120,6 +120,7 @@ def prepare_data_nonhot(dataset_name):
 
     X_train= arr_train[:, :-1]
     y_train = np.ravel(arr_train[:, -1], 'C')
+
     groups_train = groups[idx_train]
 
     X_test = arr_test[:, :-1]
@@ -161,20 +162,31 @@ def load_npy_gzip(file_name):
     return arr
 
 
-def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train, groups_test, dataset_name):
+def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train, groups_test, dataset_name, start_at=None):
     # TODO: control memory usage => https://stackoverflow.com/questions/24406937/scikit-learn-joblib-bug-multiprocessing-pool-self-value-out-of-range-for-i-fo
     # https://github.com/scikit-learn/scikit-learn/issues/936
 
     save_npy_gzip(f"test_predictions/{dataset_name}_srchgroups.npy", groups_test)
     save_npy_gzip(f"test_predictions/{dataset_name}_testlabels.npy", groups_test)
 
+    scores = []
+    active = False
     for clf_nt, clf in tqdm(zip(clfs_nt, clfs)):
         print(f"Fitting: {type(clf)}")
+        if not active:
+            active = clf_nt.name == start_at
+            continue
+
         # if parallel:
         #     with joblib.parallel_backend('dask'):
         #         clf.fit(X_train, y_train)
         #     continue
-        clf.fit(X_train, y_train)
+
+        try:
+            clf.fit(X_train, y_train)
+        except Exception as e:
+            print(e)
+            continue
 
         # TODO: wrap CalibratedClassifierCV if no predict_proba()
         if clf_nt.proba_support:
@@ -184,35 +196,49 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
             # print(arr)
 
         score = clf.score(X_test, y_test)
+        print(f"Test Score: {score}")
+
+        scores += (clf_nt.name, score)
         save_model(clf, model_name=clf_nt.name)
+
+    pd.DataFrame(scores, columns=['classifier', 'Test Score']).to_excel(f'test_predictions/{dataset_name}_scores.xlsx')
 
 
 def main():
     from model_parameters import params
 
-    DATASET_NAME = 'df_temporary'
+    DATASET_NAME = 'df_features'
 
     client = Client(processes=False)
 
     classifiers = obtain_scikit_classifiers()
-    slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier', 'MLPClassifier']
-    intractable_models = ['GaussianProcessClassifier', 'LabelPropagation', 'LabelSpreading']
-    clfs_nt = list(filter(lambda clf_nt: clf_nt.name not in slow_models + intractable_models,
+    # slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier', 'MLPClassifier']
+    slow_models = []
+    ignore_models = ['GaussianProcessClassifier', 'LabelPropagation', 'LabelSpreading']
+    clfs_nt = list(filter(lambda clf_nt: clf_nt.name not in slow_models + ignore_models,
                           classifiers))
 
-    dense_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is False, clfs_nt))
-    sparse_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is True, clfs_nt))
+    clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
+            for clf_nt in clfs_nt]
+    train_and_save(clfs_nt, clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense',
+                   start_at='HistGradientBoostingClassifier')
 
-    dense_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
-                  for clf_nt in dense_clfs_nt]
 
-    # This takes way to long => use dense input for all models?
-    sparse_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
-                   for clf_nt in sparse_clfs_nt]
-
-    # QuadraticDiscriminanAnalysis predicts NaNs => because of collinear?
-    train_and_save(dense_clfs_nt, dense_clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense')
-    train_and_save(sparse_clfs_nt, sparse_clfs, *prepare_data(DATASET_NAME), dataset_name=DATASET_NAME+'_sparse')
+    #
+    #
+    # dense_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is False, clfs_nt))
+    # sparse_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is True, clfs_nt))
+    #
+    # dense_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
+    #               for clf_nt in dense_clfs_nt]
+    #
+    # # This takes way to long => use dense input for all models?
+    # sparse_clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
+    #                for clf_nt in sparse_clfs_nt]
+    #
+    # # QuadraticDiscriminanAnalysis predicts NaNs => because of collinear?
+    # train_and_save(dense_clfs_nt, dense_clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense')
+    # train_and_save(sparse_clfs_nt, sparse_clfs, *prepare_data(DATASET_NAME), dataset_name=DATASET_NAME+'_sparse')
 
     # TODO: use some voting ensemble for best models
     # TODO: HyperOpt best models

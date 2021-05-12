@@ -135,6 +135,8 @@ def preprocess2(data_name, one_hot_encode=True):
     df = pd.read_pickle(f'../{data_name}.pkl')
     # df = pd.read_pickle(f'{data_name}.pkl')
 
+    types = df.dtypes
+    descr = df.describe()
     groups = df['srch_id'].to_numpy()
     groups.tofile(f'{data_name}_groups.csv', sep=',')
     np.save(f'{data_name}_groups.npy', groups)  # faster loading
@@ -143,10 +145,13 @@ def preprocess2(data_name, one_hot_encode=True):
     # pd.DataFrame(id_cols, columns=['id_columns']).to_csv(f'{data_name}_idcols.csv', index=False)
 
     X_label = create_label_column2(df).reshape(-1, 1)
-    df.drop(['click_bool', 'booking_bool', 'date_time'], axis=1, inplace=True)
+    drop_cols = ['click_bool', 'booking_bool']
+    if 'date_time' in df.columns:
+        drop_cols.append('date_time')
+    df.drop(drop_cols, axis=1, inplace=True)
 
     if not one_hot_encode:
-        X = np.hstack([df.to_numpy(), X_label])
+        X = np.hstack([df.to_numpy(), X_label]).astype(float)
         np.save(f'{data_name}_nonhot.npy', X)
 
         return X
@@ -224,7 +229,7 @@ def preprocess():
 
 
 if __name__ == '__main__':
-    # preprocess2('df_temporary')
-    preprocess2('df_temporary', one_hot_encode=False)
+    # preprocess2('df_features')
+    preprocess2('df_features', one_hot_encode=False)
     # preprocess2('df_features')
 
