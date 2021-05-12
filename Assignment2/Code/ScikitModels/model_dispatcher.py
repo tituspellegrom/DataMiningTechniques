@@ -162,7 +162,7 @@ def load_npy_gzip(file_name):
     return arr
 
 
-def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train, groups_test, dataset_name, start_at=None):
+def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train, groups_test, dataset_name, start_after=None):
     # TODO: control memory usage => https://stackoverflow.com/questions/24406937/scikit-learn-joblib-bug-multiprocessing-pool-self-value-out-of-range-for-i-fo
     # https://github.com/scikit-learn/scikit-learn/issues/936
 
@@ -171,10 +171,10 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
 
     scores = []
     active = False
-    for clf_nt, clf in tqdm(zip(clfs_nt, clfs)):
+    for clf_nt, clf in tqdm(list(zip(clfs_nt, clfs))):
         print(f"Fitting: {type(clf)}")
         if not active:
-            active = clf_nt.name == start_at
+            active = clf_nt.name == start_after
             continue
 
         # if parallel:
@@ -190,8 +190,12 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
 
         # TODO: wrap CalibratedClassifierCV if no predict_proba()
         if clf_nt.proba_support:
-            y_prob = clf.predict_proba(X_test)
-            save_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy", y_prob)
+            try:
+                y_prob = clf.predict_proba(X_test)
+                save_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy", y_prob)
+            except Exception as e:
+                print(e)
+
             # arr = load_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy.gz")
             # print(arr)
 
@@ -201,7 +205,8 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
         scores += (clf_nt.name, score)
         save_model(clf, model_name=clf_nt.name)
 
-    pd.DataFrame(scores, columns=['classifier', 'Test Score']).to_excel(f'test_predictions/{dataset_name}_scores.xlsx')
+    df_scores = pd.DataFrame(scores, columns=['classifier', 'Test Score'])
+    df_scores.to_excel(f'test_predictions/{dataset_name}_scores.xlsx', index=False)
 
 
 def main():
@@ -213,15 +218,15 @@ def main():
 
     classifiers = obtain_scikit_classifiers()
     # slow_models = ['AdaBoostClassifier', 'ExtraTreesClassifier', 'MLPClassifier']
-    slow_models = []
-    ignore_models = ['GaussianProcessClassifier', 'LabelPropagation', 'LabelSpreading']
+    slow_models = ['KNeighborsClassifier', 'LogisticRegressionCV', 'RadiusNeighborsClassifier', 'SVC']
+    ignore_models = ['GaussianProcessClassifier', 'LabelPropagation', 'LabelSpreading', 'QuadraticDiscriminantAnalysis']
     clfs_nt = list(filter(lambda clf_nt: clf_nt.name not in slow_models + ignore_models,
                           classifiers))
 
     clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
             for clf_nt in clfs_nt]
     train_and_save(clfs_nt, clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense',
-                   start_at='HistGradientBoostingClassifier')
+                   start_after='RidgeClassifierCV')
 
 
     #
