@@ -32,12 +32,26 @@ def test_load():
     df = df.reindex(columns=df_cols)
     return df
 
+def downsample(df):
+    df_0 = df.loc[df['label'] == 0]
+    df_1 = df.loc[df['label'] == 1]
+    df_2 = df.loc[df['label'] == 2]
+
+
+    length = len(df_1) + len(df_2)
+
+    df_0_downsampled = df_0.sample(n=4*length, random_state=42)
+    df_downsampled = pd.concat([df_0_downsampled, df_1, df_2])
+
+    return df_downsampled
+
 class ExpediaDataset(Dataset):
     def __init__(self, data_name, train, path=None):
         # self.samples = sp.load_npz(filename).tocsr()
         if train == True:
             if path ==None:
-                self.samples = pd.read_pickle(f'Data/{data_name}_train.pkl')
+                data = pd.read_pickle(f'Data/{data_name}_train.pkl')
+                self.samples = downsample(data)
             else:
                 self.samples = pd.read_pickle(f'{path+data_name}_train.pkl')
         else:

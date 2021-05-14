@@ -104,8 +104,8 @@ class FactorizationMachine(torch.nn.Module):
         square_of_sum = torch.sum(x, dim=1) ** 2
         sum_of_square = torch.sum(x ** 2, dim=1)
         ix = (square_of_sum - sum_of_square).view(x.shape[0], -1)
-        # if self.reduce_sum:
-        #     ix = torch.sum(ix, dim=1, keepdim=True)
+        if self.reduce_sum:
+            ix = torch.sum(ix, dim=1, keepdim=True)
         return 0.5 * ix
 
 
@@ -117,11 +117,11 @@ class MultiLayerPerceptron(torch.nn.Module):
         for embed_dim in embed_dims:
             layers.append(torch.nn.Linear(input_dim, embed_dim))
             layers.append(torch.nn.BatchNorm1d(embed_dim))
-            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.LeakyReLU())
             layers.append(torch.nn.Dropout(p=dropout))
             input_dim = embed_dim
         if output_layer:
-            layers.append(torch.nn.Linear(input_dim, 4))
+            layers.append(torch.nn.Linear(input_dim, 1))
         self.mlp = torch.nn.Sequential(*layers)
 
     def forward(self, x):

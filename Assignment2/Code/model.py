@@ -22,7 +22,7 @@ class DeepFactorizationMachineModel(torch.nn.Module):
         self.embedding = FeaturesEmbedding(field_dims, embed_dim)
         self.embed_output_dim = (len(field_dims) * embed_dim) + num_feature_columns
         self.mlp = MultiLayerPerceptron(self.embed_output_dim, mlp_dims, dropout)
-        self.linear_out = nn.Linear(in_features=6, out_features=3) # 1 for linear, 1 for FM and 4 for MLP
+        self.linear_out = nn.Linear(in_features=1, out_features=3)
 
     def forward(self, x):
         """
@@ -38,7 +38,8 @@ class DeepFactorizationMachineModel(torch.nn.Module):
         x_emb = torch.cat([embed_x, x_feat], dim=1)
         FM = self.fm(x_emb)
         MLP = self.mlp(x_emb.view(-1, self.embed_output_dim))
-        x = torch.cat([linear, FM, MLP], axis=1)
-        # out = F.softmax(self.linear_out(x), dim=0)
+        x = torch.cat([linear, FM, MLP], axis=1).sum(dim=1).view(-1, 1)
         out = self.linear_out(x)
+        # out = F.softmax(self.linear_out(x), dim=0)
+
         return out
