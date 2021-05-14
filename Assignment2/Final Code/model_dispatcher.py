@@ -1,18 +1,13 @@
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
-from sklearn.utils import all_estimators
-
+from sklearn.utils import all_estimators, resample
 
 from dask_ml.model_selection import GridSearchCV
 from dask.distributed import Client
 from dask.diagnostics import ProgressBar
 import dill
-from collections import ChainMap
-import joblib
 import gzip
-
-from collections import namedtuple
 
 
 def save_model(model, model_name=None):
@@ -89,13 +84,35 @@ def train_and_save(classifiers_prepped, X_train, X_test, y_train, y_test, start_
         save_model(clf, model_name=clf_nm)
 
 
+def downsample(X_train, y_train):
+    arr = np.hstack([X_train, y_train.reshape(-1, 1)])
+
+    arr0 = arr[y_train == 0]
+    arr1 = arr[y_train == 1]
+    arr5 = arr[y_train == 5]
+
+    non_zero_length = arr1.shape[0] + arr5.shape[0]
+
+    arr0_downsampled = resample(arr0, n_samples=4*non_zero_length, random_state=42)
+
+    arr_downsampled = np.vstack([arr0_downsampled, arr1, arr5])
+
+    return arr_downsampled[:, :-1], arr_downsampled[:, -1]
+
+
 def main():
     from model_parameters import params
 
-    client = Client(processes=False)
+    # client = Client(processes=False)
 
     X_train, X_val = np.load('X_train.npy'), np.load('X_val.npy')
     y_train, y_val = np.load('y_train.npy'), np.load('y_val.npy')
+
+    print(X_train.shape)
+    print(y_train.shape)
+    X_train, y_train = downsample(X_train, y_train)
+    print(X_train.shape)
+    print(y_train.shape)
 
     skip_classifiers = {'ClassifierChain', 'MultiOutputClassifier',
                         'StackingClassifier', 'VotingClassifier',
@@ -107,7 +124,7 @@ def main():
     slow_models = {'KNeighborsClassifier', 'LogisticRegressionCV', 'RadiusNeighborsClassifier', 'SVC'}
 
     classifiers = [(nm, CLF) for nm, CLF in all_estimators(type_filter='classifier')
-                  if nm not in skip_classifiers | slow_models]
+                   if nm not in skip_classifiers | slow_models]
 
     classifiers_prepped = [(clf_nm, prepare_classifier(CLF, model_params=params.get(clf_nm, dict()), hyper_opt=False))
                            for clf_nm, CLF in classifiers]
@@ -120,4 +137,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

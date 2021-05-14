@@ -28,7 +28,6 @@ def create_label_column2(df):
     df['label'].loc[click_indices] = 1
     df['label'].loc[book_indices] = 5
 
-
     return df['label'].to_numpy()
 
 
@@ -145,10 +144,11 @@ def preprocess2(data_name, one_hot_encode=True):
     # pd.DataFrame(id_cols, columns=['id_columns']).to_csv(f'{data_name}_idcols.csv', index=False)
 
     X_label = create_label_column2(df).reshape(-1, 1)
-    drop_cols = ['click_bool', 'booking_bool']
+    drop_cols = ['click_bool', 'booking_bool', 'label']
     if 'date_time' in df.columns:
         drop_cols.append('date_time')
     df.drop(drop_cols, axis=1, inplace=True)
+    np.save('old_columns.npy', df.columns.values)
 
     if not one_hot_encode:
         X = np.hstack([df.to_numpy(), X_label]).astype(float)

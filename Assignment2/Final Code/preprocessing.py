@@ -13,6 +13,7 @@ def prepare_train_set():
 
     df_train = pd.read_pickle(TRAIN_SET)
 
+    np.save('final_columns.npy', df_train.columns.values)
     missing = df_train.isnull().sum()
     describ = df_train.describe()
 
@@ -20,6 +21,10 @@ def prepare_train_set():
     idx_train, idx_val = next(gss)
 
     X, y = df_train.loc[:, df_train.columns != 'label'].to_numpy(), df_train['label'].to_numpy()
+    print(X[:5, :])
+    print(X.shape)
+    print(y[:5])
+    print(y.shape)
     X = X.astype(float)
     y = y.astype(float)
 
@@ -66,7 +71,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 # TODO: collect all classifiers

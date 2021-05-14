@@ -113,12 +113,13 @@ def prepare_data_nonhot(dataset_name):
     groups = np.load(f"../{dataset_name}_groups.npy")
 
     arr_train, arr_test, idx_train, idx_test = split_groups(arr, groups)
-
+    print(arr_train.shape)
     del arr
     gc.collect()
     time.sleep(5)
 
     X_train= arr_train[:, :-1]
+    print(X_train.shape)
     y_train = np.ravel(arr_train[:, -1], 'C')
 
     groups_train = groups[idx_train]
@@ -173,7 +174,7 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
     active = False
     for clf_nt, clf in tqdm(list(zip(clfs_nt, clfs))):
         print(f"Fitting: {type(clf)}")
-        if not active:
+        if not active and start_after is not None:
             active = clf_nt.name == start_after
             continue
 
@@ -201,6 +202,7 @@ def train_and_save(clfs_nt, clfs, X_train, X_test, y_train, y_test, groups_train
 
         score = clf.score(X_test, y_test)
         print(f"Test Score: {score}")
+        pd.DataFrame([(clf_nt.name, score)]).to_csv('test_predictions/scores.csv', mode='a', index=False, header=False)
 
         scores += (clf_nt.name, score)
         save_model(clf, model_name=clf_nt.name)
@@ -226,11 +228,9 @@ def main():
     clfs = [prepare_classifier(clf_nt, model_params=params.get(clf_nt.name, dict()), hyper_opt=False)
             for clf_nt in clfs_nt]
     train_and_save(clfs_nt, clfs, *prepare_data_nonhot(DATASET_NAME), dataset_name=DATASET_NAME+'_dense',
-                   start_after='RidgeClassifierCV')
+                   start_after=None)
 
 
-    #
-    #
     # dense_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is False, clfs_nt))
     # sparse_clfs_nt = list(filter(lambda clf_nt: clf_nt.sparse_support is True, clfs_nt))
     #
