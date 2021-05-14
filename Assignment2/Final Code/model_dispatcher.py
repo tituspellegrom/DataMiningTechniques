@@ -22,11 +22,14 @@ def save_model(model, model_name=None):
         dill.dump(model, file)
 
 
-def prepare_classifier(CLF, model_params, hyper_opt=False):
+def prepare_classifier(CLF, class_weights, model_params, hyper_opt=False):
     default_params = model_params.get('default_params', dict())
     hyper_params = model_params.get('hyper_params', dict())
 
     clf = CLF(**default_params)
+
+    if 'class_weight' in clf.get_params():
+        clf.set_params(class_weight=class_weights)
 
     if hyper_opt:
         hyper_params_incl_default = [{**default_params, **hyper_dict}
@@ -114,6 +117,10 @@ def main():
     print(X_train.shape)
     print(y_train.shape)
 
+    class_weights = {0: y_train[y_train == 0].shape[0],
+                     1: y_train[y_train == 1].shape[0],
+                     5: y_train[y_train == 5].shape[0]}
+
     skip_classifiers = {'ClassifierChain', 'MultiOutputClassifier',
                         'StackingClassifier', 'VotingClassifier',
                         'CategoricalNB', 'CalibratedClassifierCV',
@@ -123,13 +130,17 @@ def main():
                         'LabelSpreading', 'QuadraticDiscriminantAnalysis'}
     slow_models = {'KNeighborsClassifier', 'LogisticRegressionCV', 'RadiusNeighborsClassifier', 'SVC'}
 
+    # TODO: Add class weights if supported
+
     classifiers = [(nm, CLF) for nm, CLF in all_estimators(type_filter='classifier')
                    if nm not in skip_classifiers | slow_models]
 
-    classifiers_prepped = [(clf_nm, prepare_classifier(CLF, model_params=params.get(clf_nm, dict()), hyper_opt=False))
+    classifiers_prepped = [(clf_nm, prepare_classifier(CLF, class_weights,
+                                                       model_params=params.get(clf_nm, dict()), hyper_opt=False))
                            for clf_nm, CLF in classifiers]
 
-    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after=None)
+    # train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='GaussianNB')
+    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='ComplementNB')
 
     # TODO: use some voting ensemble for best models
     # TODO: HyperOpt best models
