@@ -51,7 +51,7 @@ def load_npy_gzip(file_name):
     return arr
 
 
-def train_and_save(classifiers_prepped, X_train, X_test, y_train, y_test, start_after=None):
+def train_and_save(classifiers_prepped, X_train, X_test, y_train, y_test, start_after=None, run_name=''):
 
     active = False
     for clf_nm, clf in tqdm(classifiers_prepped):
@@ -69,22 +69,16 @@ def train_and_save(classifiers_prepped, X_train, X_test, y_train, y_test, start_
         # TODO: wrap CalibratedClassifierCV if no predict_proba()
         try:
             y_prob = clf.predict_proba(X_test)
-            save_npy_gzip(f"val_predictions/{clf_nm}_proba.npy", y_prob)
+            save_npy_gzip(f"val_predictions/{clf_nm}{run_name}_proba.npy", y_prob)
             # arr = load_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy.gz")
-        except Exception as e:
-            print(e)
-
-        try:
-            y_pred = clf.predict(X_test)
-            save_npy_gzip(f"val_predictions/{clf_nm}.npy", y_pred)
         except Exception as e:
             print(e)
 
         score = clf.score(X_test, y_test)
         print(f"Test Score: {score}")
 
-        pd.DataFrame([(clf_nm, score)]).to_csv('val_predictions/scores.csv', mode='a', index=False, header=False)
-        save_model(clf, model_name=clf_nm)
+        pd.DataFrame([(clf_nm, score)]).to_csv(f'val_predictions/scores{run_name}.csv', mode='a', index=False, header=False)
+        save_model(clf, model_name=f'{clf_nm}{run_name}')
 
 
 def downsample(X_train, y_train):
@@ -113,7 +107,7 @@ def main():
 
     print(X_train.shape)
     print(y_train.shape)
-    X_train, y_train = downsample(X_train, y_train)
+    # X_train, y_train = downsample(X_train, y_train)
     print(X_train.shape)
     print(y_train.shape)
 
@@ -130,19 +124,17 @@ def main():
                         'LabelSpreading', 'QuadraticDiscriminantAnalysis'}
     slow_models = {'KNeighborsClassifier', 'LogisticRegressionCV', 'RadiusNeighborsClassifier', 'SVC'}
 
-    # TODO: Add class weights if supported
-
     classifiers = [(nm, CLF) for nm, CLF in all_estimators(type_filter='classifier')
-                   if nm not in skip_classifiers | slow_models]
+                   if nm not in skip_classifiers | slow_models
+                   and hasattr(CLF, 'predict_proba')]
 
     classifiers_prepped = [(clf_nm, prepare_classifier(CLF, class_weights,
                                                        model_params=params.get(clf_nm, dict()), hyper_opt=False))
                            for clf_nm, CLF in classifiers]
 
     # train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='GaussianNB')
-    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='ComplementNB')
+    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='Perceptron', run_name='_nodownsample')
 
-    # TODO: use some voting ensemble for best models
     # TODO: HyperOpt best models
 
 
