@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import math
 import pyswarm as ps
+import GWO
+import random
 
 def import_file(file):
     data_file = gzip.open(file)
@@ -85,21 +87,49 @@ def rank_score(data, weights):
     '''
     Calculate rankscore for hotel_id to determine rank
     '''
-    return weights['w1']*data['prob0'] + weights['w2']*data['prob1'] + weights['w3']*data['prob5']
+    return weights[0]*data['prob0'] + weights[1]*data['prob1'] + weights[2]*data['prob5']
 
 def init_weights():
     '''
     Initialize weights for rankscore function
     '''
-    weights = {'w1': 0.1, 'w2':1, 'w3':5 }
+    weights = [0.1, 1.0, 5.0]
     return weights
 
-def optimize_weights_PSO(weights):
-    #Call instance op PSO
-    optimizer = ps.single.GlobalBestPSO(n_particles=10, dimension=2, options=weights)
-
-    return
+def fitness(weights, data, true_labels):
+    data['rankscore'] = rank_score(data, weights)
+    result = rank_output(data)
+    ncdg = evaluate_result(result, true_labels)
+    return ncdg
     
+def grey_wolf_optimization(fitness_function, data, true_labels):
+    print("Begin grey wolf optimization")
+    dim = 3
+    minW = -10.0
+    maxW = 10.0
+    
+    print("Goal is to optimize weights w1, w2, w3 that determine the rankscore")
+    
+    num_particles = 50
+    max_iter = 30
+    
+    print("Setting num_particles = " + str(num_particles))
+    print("Setting max_iter    = " + str(max_iter))
+    print("Lower bound weights = " + str(minW))
+    print("Upper bound weights = " + str(maxW))
+    print("\nStarting GWO algorithm\n")
+    
+    best_position = GWO.gwo(fitness_function, max_iter, num_particles, dim, minW, maxW, data, true_labels)
+    
+    print("\nGWO completed\n")
+    print("\nBest solution found:")
+    print(["%.6f"%best_position[k] for k in range(dim)])
+    err = fitness(best_position, data, true_labels)
+    print("fitness of best solution = %.6f" % err)
+      
+    print("\nEnd GWO for rastrigin\n")
+    return
+
 
 def main():
     path = "C:/Users/doist/OneDrive/Documenten/Business Analytics/Master/Year 1/Data Mining Techniques/Assignment 2/Data/"
@@ -116,7 +146,8 @@ def main():
     ndcg = evaluate_result(result, true_labels)
     print(ndcg)
     
-    optimize_weights_PSO(weights)
+    grey_wolf_optimization(fitness, data, true_labels)
+
     
 
 if __name__ == '__main__':
