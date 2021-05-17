@@ -7,6 +7,7 @@ Created on Sat May 15 11:23:18 2021
 
 import random
 import copy
+from tqdm import tqdm
 
 class wolf:
     def __init__(self, fitness, dim, lower_bound, upper_bound, seed, data, true_labels):
@@ -25,7 +26,7 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
     population = [wolf(fitness, dim, lower_bound, upper_bound, i, data, true_labels) for i in range(n)]
     
     # Sort population based on fitness
-    population = sorted(population, key = lambda temp: temp.fitness, reverse=True)
+    population = sorted(population, key = lambda temp: temp.fitness, reverse=False)
     
     # Determine alpha, beta and gamma
     alpha_wolf, beta_wolf, gamma_wolf = copy.copy(population[:3])
@@ -35,16 +36,16 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
     while k < max_iter:
         print(k)
         # print iteration number and best fitness value so far
-        if k % 10 == 0 and k > 1:
+        if k % 1 == 0 and k > 1:
             print('Iter = ' + str(k) + " best fitness = %.3f" % alpha_wolf.fitness)
             print('Best weights = ', alpha_wolf.weights)
-            
             
         # linearly decreased from 2 to 0
         a = 2*(1-k/max_iter)
         
         # Updating each population member with the help of best three members
-        for i in range(n):
+        print('\nUpdating population in iteration ' + str(k) + '\n')
+        for i in tqdm(range(n)):
             A1, A2, A3 = a*(2*rnd.random()-1), a*(2*rnd.random()-1), a*(2*rnd.random()-1)
             C1, C2, C3 = 2*rnd.random(), 2*rnd.random(), 2*rnd.random()
             
@@ -82,7 +83,7 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
             
         k += 1
         
-    return alpha_wolf.weights
+    return alpha_wolf
             
             
             
