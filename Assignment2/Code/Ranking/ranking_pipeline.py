@@ -6,6 +6,7 @@ import PSO
 import pipeline_connector
 from tqdm import tqdm
 import random
+import pickle
 
 def determine_true_rankscore(x):
     if x['booking_bool'] == 1:
@@ -47,10 +48,9 @@ def evaluate_result(result, true_labels):
     Evaluate predicted rank based on true labels, using NDCG.
     '''
     
-    print('\nEvaluating result...\n')
     results = []
     
-    for search_id in tqdm(result['search_id'].unique()):
+    for search_id in result['search_id'].unique():
         temp_true = true_labels[true_labels['search_id']==search_id]
         idcg = dcg_ideal(temp_true)
         
@@ -67,11 +67,10 @@ def rank_output(data):
     Rank hotel_id's per search_id based on the rankscore.
     '''
     
-    print('\nRanking the data...\n')
     res_search_ids = []
     res_hotel_ids = []
     
-    for search_id in tqdm(data['search_id'].unique()):
+    for search_id in data['search_id'].unique():
         temp = data[data['search_id']==search_id]
         temp = temp.sort_values(by=['rankscore'], ascending=False)
         res_search_ids.append(temp['search_id'].values)
@@ -92,11 +91,14 @@ def rank_score(data, weights):
     '''
     return weights[0]*data['prob0'] + weights[1]*data['prob1'] + weights[2]*data['prob5']
 
-def init_weights():
+def init_weights(rand=False):
     '''
     Initialize weights for rankscore function
     '''
-    weights = [1.0, 1.0, 1.0]
+    if rand:
+        weights = [random.uniform(-5.0, 5.0), random.uniform(-5.0, 5.0), random.uniform(-5.0, 5.0)]
+    else:
+        weights = [0.0, 1.0, 5.0]
     return weights
 
 def fitness(weights, data, true_labels):
@@ -113,8 +115,8 @@ def grey_wolf_optimization(fitness_function, data, true_labels):
     
     print("Goal is to optimize weights w1, w2, w3 that determine the rankscore")
     
-    num_particles = 10
-    max_iter = 15
+    num_particles = 5
+    max_iter = 5
     
     print("Setting num_particles = " + str(num_particles))
     print("Setting max_iter    = " + str(max_iter))
@@ -122,13 +124,23 @@ def grey_wolf_optimization(fitness_function, data, true_labels):
     print("Upper bound weights = " + str(maxW))
     print("\nStarting GWO algorithm\n")
     
-    best_sol = GWO.gwo(fitness_function, max_iter, num_particles, dim, minW, maxW, data, true_labels)
+    best_sol, gwo_summary = GWO.gwo(fitness_function, max_iter, num_particles, dim, minW, maxW, data, true_labels)
+    f = open('gwo_summary.pkl', 'wb')
+    pickle.dump(gwo_summary,f)
+    f.close()
+    
+    print(gwo_summary)
+    
+    for i in range(max_iter):
+        print('\nIteration ' + str(i))
+        print('\nBest set of weights: ', gwo_summary[i]['best_solution'])
+        print('\nFitness best solution: ', gwo_summary[i]['fitness_best_solution'])
     
     print("\nGWO completed\n")
     print("\nBest solution found:")
     print(["%.6f"%best_sol.weights[k] for k in range(dim)])
     err = fitness(best_sol.weights, data, true_labels)
-    print("fitness of best solution = %.6f" % err)
+    print("\nfitness of best solution = %.6f" % err)
       
     print("\nEnd GWO\n")
     return best_sol
@@ -136,38 +148,44 @@ def grey_wolf_optimization(fitness_function, data, true_labels):
 
 def main():
     path = 'C:/Users/doist/OneDrive/Documenten/GitHub/DataMiningTechniques/Assignment2/Final Code/'
-    data, true_labels = pipeline_connector.prep_data(path, '/GradientBoostingClassifier_proba.npy.gz')
+    data, true_labels = pipeline_connector.prep_data(path, '/HistGradientBoostingClassifier_top8_downsample_cv_proba.npy.gz')
 
-    x = data[:10000]
-    y = true_labels[:10000]
+    x_data = data[:10000]
+    y_true_labels = true_labels[:10000]
 
-    weights = init_weights()
+    weights = init_weights(rand=False)
     
     # PIPELINE rank once:
     '''
+    print('\nRanking with arbitrary weights: ', weights)
     data['rankscore'] = rank_score(data, weights)
-    
     result = rank_output(data)
-    
     ndcg = evaluate_result(result, true_labels)
     print('\nObtained NCDG = ', ndcg)
     '''
     
     # GWO
-    #best = grey_wolf_optimization(fitness, data, true_labels)
+    data, true_labels = pipeline_connector.prep_data(path, '/HistGradientBoostingClassifier_top8_downsample_cv_proba.npy.gz')
+    grey_wolf_optimization(fitness, data, true_labels)
     
     
     # PSO
-    
+    data, true_labels = pipeline_connector.prep_data(path, '/HistGradientBoostingClassifier_top8_downsample_cv_proba.npy.gz')
+    weights = init_weights(rand=True)
     bounds = [(-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)]
-    num_particles = 15
-    maxiter = 10
-    summary = PSO.PSO.particle_swarm_optimization(fitness, weights, bounds, num_particles, maxiter, data, true_labels)
+    num_particles = 5
+    maxiter = 5
+    print('PSO initialized with weights: ', weights)
+    pso_summary = PSO.PSO.particle_swarm_optimization(fitness, weights, bounds, num_particles, maxiter, data, true_labels)
+    f = open('pso_summary.pkl', 'wb')
+    pickle.dump(pso_summary,f)
+    f.close()
+    
     
     for i in range(maxiter):
         print('\nIteration ' + str(i))
-        print('Best set of weights: ', summary[i]['best_solution'])
-        print('Fitness best solution: ', summary[i]['fitness_best_solution'])
+        print('Best set of weights: ', pso_summary[i]['best_solution'])
+        print('Fitness best solution: ', pso_summary[i]['fitness_best_solution'])
         
         #for part in summary[i]['swarm']:
          #   print(part.weights_i)

@@ -20,6 +20,8 @@ class wolf:
         self.fitness = fitness(self.weights, data, true_labels)
         
 def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
+    GWO_summary = {}
+    
     rnd = random.Random(0)
     
     # create n random wolves
@@ -39,13 +41,19 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
         if k % 1 == 0 and k > 1:
             print('Iter = ' + str(k) + " best fitness = %.3f" % alpha_wolf.fitness)
             print('Best weights = ', alpha_wolf.weights)
+        
+        # Add info to PSO summary
+        GWO_summary[k] = {}
+        GWO_summary[k]['best_solution'] = alpha_wolf.weights
+        GWO_summary[k]['fitness_best_solution'] = alpha_wolf.fitness
+        GWO_summary[k]['swarm'] = population
             
         # linearly decreased from 2 to 0
         a = 2*(1-k/max_iter)
         
         # Updating each population member with the help of best three members
         print('\nUpdating population in iteration ' + str(k) + '\n')
-        for i in tqdm(range(n)):
+        for i in range(n):
             A1, A2, A3 = a*(2*rnd.random()-1), a*(2*rnd.random()-1), a*(2*rnd.random()-1)
             C1, C2, C3 = 2*rnd.random(), 2*rnd.random(), 2*rnd.random()
             
@@ -83,7 +91,7 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
             
         k += 1
         
-    return alpha_wolf
+    return alpha_wolf, GWO_summary
             
             
             
