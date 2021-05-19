@@ -1,12 +1,11 @@
-import gzip
 import numpy as np
 import pandas as pd
 import math
-import pyswarm as ps
 import GWO
-import random
+import PSO
 import pipeline_connector
 from tqdm import tqdm
+import random
 
 def determine_true_rankscore(x):
     if x['booking_bool'] == 1:
@@ -97,7 +96,7 @@ def init_weights():
     '''
     Initialize weights for rankscore function
     '''
-    weights = [0.1, 1.0, 5.0]
+    weights = [1.0, 1.0, 1.0]
     return weights
 
 def fitness(weights, data, true_labels):
@@ -143,7 +142,8 @@ def main():
     y = true_labels[:10000]
 
     weights = init_weights()
-    #weights = [-8.189630, -8.222910, -31.149832]
+    
+    # PIPELINE rank once:
     '''
     data['rankscore'] = rank_score(data, weights)
     
@@ -153,7 +153,25 @@ def main():
     print('\nObtained NCDG = ', ndcg)
     '''
     
-    best = grey_wolf_optimization(fitness, data, true_labels)
+    # GWO
+    #best = grey_wolf_optimization(fitness, data, true_labels)
+    
+    
+    # PSO
+    
+    bounds = [(-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)]
+    num_particles = 15
+    maxiter = 10
+    summary = PSO.PSO.particle_swarm_optimization(fitness, weights, bounds, num_particles, maxiter, data, true_labels)
+    
+    for i in range(maxiter):
+        print('\nIteration ' + str(i))
+        print('Best set of weights: ', summary[i]['best_solution'])
+        print('Fitness best solution: ', summary[i]['fitness_best_solution'])
+        
+        #for part in summary[i]['swarm']:
+         #   print(part.weights_i)
+         #   print(part.ndcg_i)
     return
     
 
