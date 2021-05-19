@@ -114,25 +114,25 @@ def impute_prop_location_score2(df: pd.DataFrame, is_train_set: bool = False) ->
     return df
 
 
-def windsor_price_usd(df: pd.DataFrame, alpha: float = 0.01, is_train_set: bool = False) -> pd.DataFrame:
+def windsor_column(df: pd.DataFrame, col_name, alpha: float = 0.01, is_train_set: bool = False) -> pd.DataFrame:
     if is_train_set:
-        store_dict = dict(lower_quantile=df['price_usd'].quantile(alpha),
-                          upper_quantile=df['price_usd'].quantile(1 - alpha))
-        with open('price_usd_windsor.pickle', 'wb') as handle:
+        store_dict = dict(lower_quantile=df[col_name].quantile(alpha),
+                          upper_quantile=df[col_name].quantile(1 - alpha))
+        with open(f'{col_name}_windsor.pickle', 'wb') as handle:
             pickle.dump(store_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     try:
-        with open('price_usd_windsor.pickle', 'rb') as handle:
+        with open(f'{col_name}_windsor.pickle', 'rb') as handle:
             store_dict = pickle.load(handle)
     except FileNotFoundError:
         raise FileNotFoundError(
             "No imputation data found, please run on train set with is_train_set=True to store needed data.")
 
-    price_usd_winsorized = df['price_usd'].clip(lower=store_dict['lower_quantile'],
-                                                upper=store_dict['upper_quantile'])
+    col_winsorized = df[col_name].clip(lower=store_dict['lower_quantile'],
+                                       upper=store_dict['upper_quantile'])
 
-    outliers = df.loc[df['price_usd'] != price_usd_winsorized, 'price_usd']
-    df['price_usd'] = price_usd_winsorized
+    outliers = df.loc[df[col_name] != col_winsorized, col_name]
+    df[col_name] = col_winsorized
 
     return df
 
@@ -263,7 +263,9 @@ def feature_engineer(file_name: str, is_train_set: bool) -> pd.DataFrame:
     df = impute_prop_review_score(df)
     df = impute_orig_dest_distance(df, is_train_set=is_train_set)
     df = impute_prop_location_score2(df, is_train_set=is_train_set)
-    df = windsor_price_usd(df, is_train_set=is_train_set)
+    df = windsor_column(df, 'price_usd', is_train_set=is_train_set)
+    df = windsor_column(df, 'srch_length_of_stay', is_train_set=is_train_set)
+    df = windsor_column(df, 'srch_booking_window', is_train_set=is_train_set)
     df = add_date_features(df)
     df = add_srch_features(df)
     df = add_pricing_features(df, is_train_set=is_train_set)

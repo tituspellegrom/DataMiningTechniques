@@ -13,18 +13,13 @@ def prepare_train_set():
 
     df_train = pd.read_pickle(TRAIN_SET)
 
-    np.save('final_columns.npy', df_train.columns.values)
-    missing = df_train.isnull().sum()
-    describ = df_train.describe()
+    np.save('trainset_columns.npy', df_train.columns.values)
 
     gss = GroupShuffleSplit(test_size=.20, n_splits=2, random_state=7).split(df_train, groups=df_train['srch_id'])
     idx_train, idx_val = next(gss)
 
     X, y = df_train.loc[:, df_train.columns != 'label'].to_numpy(), df_train['label'].to_numpy()
-    print(X[:5, :])
-    print(X.shape)
-    print(y[:5])
-    print(y.shape)
+
     X = X.astype(float)
     y = y.astype(float)
 
@@ -52,7 +47,7 @@ def prepare_train_set():
 def prepare_test_set(sc_X):
     df_test = pd.read_pickle(TEST_SET)
 
-    describ = df_test.describe()
+    np.save('testset_columns.npy', df_test.columns.values)
 
     test_ids = df_test[['srch_id', 'prop_id']]
     test_ids.to_csv('test_ids.csv', index=False)

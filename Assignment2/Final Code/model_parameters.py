@@ -1,12 +1,15 @@
 from itertools import permutations
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, NuSVC
 
 params = {'AdaBoostClassifier': {
               'default_params': {},
               'hyper_params': [
                                 {
-                                    'n_estimators': list(range(10, 200, 10)),
-                                    'learning_rate': [.6, .8, 1., 1.2, 1.4, 1.6]
-                                }
+                                    'base_estimator': [None, LogisticRegression(solver='saga')],
+                                    'learning_rate': [0.01, 0.1, 1, 10],
+                                    'n_estimators': [5, 50, 100, 250]
+                                },
                                ]
           },
           'BaggingClassifier': {
@@ -85,14 +88,9 @@ params = {'AdaBoostClassifier': {
               'default_params': {},
               'hyper_params': [
                   {
-                      'loss': ['deviance', 'exponential'],
-                      'learning_rate': [.2, .4, .6, .8, 1., 1.2, 1.4, 1.6, 1.8, 2.],
-                      'n_estimators': range(20, 200, 20),
-                      'sub_sample': [.5, .6, .7, .8, .9, 1.],
-                      'criterion': ['friedman_mse', 'mse', 'mae'],
-                      'min_samples_split': list(range(1, 5)),
-                      'max_depth': list(range(2, 10, 1)),
-                      'max_features': ['auto', 'sqrt', 'log2']
+                      'learning_rate': [0.01, 0.1, 1, 10, 100],
+                      'n_estimators': [5, 50, 250, 500],
+                      'max_depth': [1, 3, 5, 7, 9]
                   }
               ]
           },
@@ -100,10 +98,11 @@ params = {'AdaBoostClassifier': {
               'default_params': {},
               'hyper_params': [
                   {
-                      'loss': ['auto', 'binary_crossentropy', 'categorical_crossentropy'],
-                      'learning_rate': [.2, .4, .6, .8, 1., 1.2, 1.4, 1.6, 1.8, 2.],
-                      'l2_regularization': [.1, .2, 3., .4, .5, .6, .7, .8, .9, 1.],
-                      'max_depth': list(range(2, 10, 1))
+                      # 'learning_rate': [.2, .4, .6, .8, 1., 1.2, 1.4, 1.6, 1.8, 2.],
+                      'learning_rate': [0.01, 0.1, 1, 10, 100],
+                      'max_depth': [1, 3, 5, 7, 9]
+                      # 'l2_regularization': [.1, .2, 3., .4, .5, .6, .7, .8, .9, 1.],
+                      # 'l2_regularization': [.5, 1.]
                   }
               ]
           },
@@ -193,12 +192,24 @@ params = {'AdaBoostClassifier': {
           'MLPClassifier': {
               'default_params': {},
               'hyper_params': [
+                  # {
+                  #     # 'hidden_layer_sizes': [(5, ), (50, ), (100,), (200,) tuple(lay)
+                  #     #                        for i in range(1, 3)
+                  #     #                        for lay in permutations([5, 50, 250], i)],
+                  #     'hidden_layer_sizes': [(5, 5), (50, 50), (100, 100)],
+                  #     'alpha': [0.0001, 0.05],
+                  #     'learning_rate': ['constant', 'adaptive']
+                  # },
                   {
-                      'hidden_layer_size':
-                          [list(permutations(list(range(50, 250, 50)), i))
-                           for i in range(1, 4)],
-                      'alpha': [0.0001, 0.0003, 0.0005, 0.0007, 0.0009]
-                  }
+                      'hidden_layer_sizes': [(5, 5), (50, 50), (100, )],
+                      'alpha': [0.0001, 0.05],
+                      'learning_rate': ['constant', 'adaptive']
+                  },
+                  # {
+                  #     'hidden_layer_sizes': [(5, 5)],
+                  #     'alpha': [0.0001],
+                  #     'learning_rate': ['adaptive']
+                  # },
               ]
           },
           'NearestCentroid': {

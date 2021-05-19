@@ -6,13 +6,24 @@ from model_dispatcher import load_npy_gzip
 from sklearn.metrics import ndcg_score
 
 
-def simple_rank(df):
-    df['importance'] = df['booking_prob'] * 5 + df['click_prob']
-    # df['importance'] = pd.concat([df['booking_prob']*5, df['click_prob']], axis=1).max(axis=1)
+def weight_rank(df, weights):
+    df['importance'] = weights[0] * df['nothing_prob'] + weights[1] * df['click_prob'] + weights[2] * df['booking_prob']
 
     df.sort_values(['srch_id', 'importance'], ascending=[True, False], inplace=True)
 
     return df
+
+
+def simple_rank(df):
+
+    return weight_rank(df, (0, 1, 5))
+    #
+    # df['importance'] = df['booking_prob'] * 5 + df['click_prob']
+    # # df['importance'] = pd.concat([df['booking_prob']*5, df['click_prob']], axis=1).max(axis=1)
+    #
+    # df.sort_values(['srch_id', 'importance'], ascending=[True, False], inplace=True)
+    #
+    # return df
 
 
 def apply_ndcg(df_g):
@@ -32,9 +43,11 @@ def rank_score(df_ids):
     return mean_ndcg5
 
 
-def rank_predictions(model_name, validation_pred, ranking_algo=None):
+def rank_predictions(model_name, validation_pred, ranking_algo=None, rank_name=None):
     if ranking_algo is None:
         ranking_algo = simple_rank
+    if rank_name is None:
+        rank_name = ranking_algo.__name__
 
     try:
         if validation_pred:
@@ -53,20 +66,33 @@ def rank_predictions(model_name, validation_pred, ranking_algo=None):
 
     if validation_pred:
         score = rank_score(df_ids)
-        pd.DataFrame([(model_name, score)]).to_csv('val_ndcg_scores.csv', mode='a', index=False, header=False)
+        print(score)
+        pd.DataFrame([(f'{model_name}_{rank_name}', score)]).to_csv('val_ndcg_scores.csv', mode='a', index=False, header=False)
     else:
-        df_ids[['srch_id', 'prop_id']].to_csv(f'kaggle_predictions/{model_name}.csv', index=False)
+        df_ids[['srch_id', 'prop_id']].to_csv(f'kaggle_predictions/{model_name}_{rank_name}.csv', index=False)
 
 
 TEST_IDS = 'test_ids.csv'
 TEST_FOLDER = 'test_predictions/'
 VAL_IDS = 'val_ids.csv'
 VAL_FOLDER = 'val_predictions/'
-
 MODEL_FOLDER = 'models_saved/'
-model_names = [fn.split('.pkl')[0] for fn in os.listdir(MODEL_FOLDER) if fn.endswith('.pkl')]
-model_names = ['GradientBoostingClassifier_nodownsample']
+RUN_NAME = 'top8_downsample'
 
-for mdl_name in tqdm(model_names):
-    rank_predictions(mdl_name, validation_pred=False)
+
+def main():
+    model_names = [fn.split('.pkl')[0] for fn in os.listdir(MODEL_FOLDER) if fn.endswith(f'{RUN_NAME}.pkl')]
+    # model_names = ['HistGradientBoostingClassifier_cv_test']
+    # model_names = ['GradientBoostingClassifier_nodownsample']
+
+    grey_wolf_weights = [0.8450970154270735, 0.9139184920050212, 1.3436247928017258]
+    for mdl_name in tqdm(model_names):
+        # rank_predictions(mdl_name, validation_pred=False,
+        #                  ranking_algo=lambda df: weight_rank(df, grey_wolf_weights), rank_name='gwo')
+        rank_predictions(mdl_name, validation_pred=False)
+
+
+if __name__ == '__main__':
+    main()
+
 

@@ -1,13 +1,15 @@
+# encoding=utf8
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 from sklearn.utils import all_estimators, resample
-
 from dask_ml.model_selection import GridSearchCV
 from dask.distributed import Client
 from dask.diagnostics import ProgressBar
 import dill
 import gzip
+import itertools
+import os
 
 
 def save_model(model, model_name=None):
@@ -30,11 +32,13 @@ def prepare_classifier(CLF, class_weights, model_params, hyper_opt=False):
 
     if 'class_weight' in clf.get_params():
         clf.set_params(class_weight=class_weights)
+    if 'n_jobs' in clf.get_params():
+        clf.set_params(n_jobs=-1)
 
     if hyper_opt:
         hyper_params_incl_default = [{**default_params, **hyper_dict}
                                      for hyper_dict in hyper_params]
-        clf = GridSearchCV(clf, hyper_params_incl_default)
+        clf = GridSearchCV(clf, hyper_params_incl_default, scoring='f1_micro')
 
     return clf
 
@@ -61,16 +65,15 @@ def train_and_save(classifiers_prepped, X_train, X_test, y_train, y_test, start_
             continue
 
         try:
-            clf.fit(X_train, y_train)
+            with ProgressBar():
+                clf.fit(X_train, y_train)
         except Exception as e:
             print(e)
             continue
 
-        # TODO: wrap CalibratedClassifierCV if no predict_proba()
         try:
             y_prob = clf.predict_proba(X_test)
             save_npy_gzip(f"val_predictions/{clf_nm}{run_name}_proba.npy", y_prob)
-            # arr = load_npy_gzip(f"test_predictions/{dataset_name}_{clf_nt.name}.npy.gz")
         except Exception as e:
             print(e)
 
@@ -97,19 +100,35 @@ def downsample(X_train, y_train):
     return arr_downsampled[:, :-1], arr_downsampled[:, -1]
 
 
+def upsample(X_train, y_train, n_click, n_book):
+    arr = np.hstack([X_train, y_train.reshape(-1, 1)])
+
+    arr0 = arr[y_train == 0]
+    arr1 = arr[y_train == 1]
+    arr5 = arr[y_train == 5]
+
+    arr1_upsampled = resample(arr1, n_samples=n_click*arr1.shape[0], random_state=42)
+    arr5_upsampled = resample(arr5, n_samples=n_book*arr5.shape[0], random_state=42)
+
+    arr_upsampled = np.vstack([arr0, arr1_upsampled, arr5_upsampled])
+
+    return arr_upsampled[:, :-1], arr_upsampled[:, -1]
+
+
 def main():
     from model_parameters import params
-
-    # client = Client(processes=False)
 
     X_train, X_val = np.load('X_train.npy'), np.load('X_val.npy')
     y_train, y_val = np.load('y_train.npy'), np.load('y_val.npy')
 
-    print(X_train.shape)
-    print(y_train.shape)
-    # X_train, y_train = downsample(X_train, y_train)
-    print(X_train.shape)
-    print(y_train.shape)
+    data_columns = np.load('trainset_columns.npy', allow_pickle=True)
+    important_columns = ['random_bool', 'prop_location_score2', 'promotion_flag', 'prop_location_score1',
+                         'price_usd', 'diff_median_price', 'diff_price_percentile_25%', 'max_price']
+    important_idx = np.where(np.isin(data_columns, important_columns))[0]
+
+    X_train, X_val = X_train[:, important_idx], X_val[:, important_idx]
+    X_train, y_train = downsample(X_train, y_train)
+    # X_train, y_train = upsample(X_train, y_train, n_click=4, n_book=20)
 
     class_weights = {0: y_train[y_train == 0].shape[0],
                      1: y_train[y_train == 1].shape[0],
@@ -124,18 +143,20 @@ def main():
                         'LabelSpreading', 'QuadraticDiscriminantAnalysis'}
     slow_models = {'KNeighborsClassifier', 'LogisticRegressionCV', 'RadiusNeighborsClassifier', 'SVC'}
 
+    explicit_models = ['AdaBoostClassifier', 'GradientBoostingClassifier',
+                       'HistGradientBoostingClassifier', 'MLPClassifier']
+    explicit_models = ['AdaBoostClassifier', 'MLPClassifier']
+
     classifiers = [(nm, CLF) for nm, CLF in all_estimators(type_filter='classifier')
-                   if nm not in skip_classifiers | slow_models
-                   and hasattr(CLF, 'predict_proba')]
+                   if nm in explicit_models]
+
+    print(classifiers)
 
     classifiers_prepped = [(clf_nm, prepare_classifier(CLF, class_weights,
-                                                       model_params=params.get(clf_nm, dict()), hyper_opt=False))
+                                                       model_params=params.get(clf_nm, dict()), hyper_opt=True))
                            for clf_nm, CLF in classifiers]
 
-    # train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='GaussianNB')
-    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after='Perceptron', run_name='_nodownsample')
-
-    # TODO: HyperOpt best models
+    train_and_save(classifiers_prepped, X_train, X_val, y_train, y_val, start_after=None, run_name='_top8_downsample_cv')
 
 
 if __name__ == '__main__':
