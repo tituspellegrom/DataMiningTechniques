@@ -36,7 +36,6 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
     # Main loop of GWO
     k = 0
     while k < max_iter:
-        print(k)
         # print iteration number and best fitness value so far
         if k % 1 == 0 and k > 1:
             print('Iter = ' + str(k) + " best fitness = %.3f" % alpha_wolf.fitness)
@@ -46,7 +45,7 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
         GWO_summary[k] = {}
         GWO_summary[k]['best_solution'] = alpha_wolf.weights
         GWO_summary[k]['fitness_best_solution'] = alpha_wolf.fitness
-        GWO_summary[k]['swarm'] = population
+        GWO_summary[k]['population'] = population
             
         # linearly decreased from 2 to 0
         a = 2*(1-k/max_iter)
@@ -72,6 +71,13 @@ def gwo(fitness, max_iter, n, dim, lower_bound, upper_bound, data, true_labels):
               
             for j in range(dim):
                 w_new[j]/=3.0
+                
+            # Check bounds:
+            for l in range(dim):
+                if w_new[l] < lower_bound:
+                    w_new[l] = lower_bound
+                if  w_new[l] > upper_bound:
+                    w_new[l] = upper_bound
               
             # fitness calculation of new solution
             fnew = fitness(w_new, data, true_labels)

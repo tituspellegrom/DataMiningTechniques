@@ -8,9 +8,9 @@ Created on Wed May 19 13:35:46 2021
 import pickle
 
 path = 'C:/Users/doist/OneDrive/Documenten/GitHub/DataMiningTechniques/Assignment2/Code/Ranking/'
-with open(path+'gwo_summary.pkl', 'rb') as handle:
+with open(path+'gwo_summary2.pkl', 'rb') as handle:
     gwo_summary = pickle.load(handle)
-with open(path+'pso_summary.pkl', 'rb') as handle:
+with open(path+'pso_summary2.pkl', 'rb') as handle:
     pso_summary = pickle.load(handle)
         
 print(gwo_summary)

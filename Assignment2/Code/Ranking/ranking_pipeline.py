@@ -91,12 +91,12 @@ def rank_score(data, weights):
     '''
     return weights[0]*data['prob0'] + weights[1]*data['prob1'] + weights[2]*data['prob5']
 
-def init_weights(rand=False):
+def init_weights(equal=False):
     '''
     Initialize weights for rankscore function
     '''
-    if rand:
-        weights = [random.uniform(-5.0, 5.0), random.uniform(-5.0, 5.0), random.uniform(-5.0, 5.0)]
+    if equal:
+        weights = [0.0, 0.0, 0.0]
     else:
         weights = [0.0, 1.0, 5.0]
     return weights
@@ -110,13 +110,13 @@ def fitness(weights, data, true_labels):
 def grey_wolf_optimization(fitness_function, data, true_labels):
     print("Begin grey wolf optimization")
     dim = 3
-    minW = -10.0
-    maxW = 10.0
+    minW = -1.0
+    maxW = 1.0
     
     print("Goal is to optimize weights w1, w2, w3 that determine the rankscore")
     
-    num_particles = 5
-    max_iter = 5
+    num_particles = 10
+    max_iter = 7
     
     print("Setting num_particles = " + str(num_particles))
     print("Setting max_iter    = " + str(max_iter))
@@ -125,11 +125,9 @@ def grey_wolf_optimization(fitness_function, data, true_labels):
     print("\nStarting GWO algorithm\n")
     
     best_sol, gwo_summary = GWO.gwo(fitness_function, max_iter, num_particles, dim, minW, maxW, data, true_labels)
-    f = open('gwo_summary.pkl', 'wb')
+    f = open('gwo_summary2.pkl', 'wb')
     pickle.dump(gwo_summary,f)
     f.close()
-    
-    print(gwo_summary)
     
     for i in range(max_iter):
         print('\nIteration ' + str(i))
@@ -150,10 +148,10 @@ def main():
     path = 'C:/Users/doist/OneDrive/Documenten/GitHub/DataMiningTechniques/Assignment2/Final Code/'
     data, true_labels = pipeline_connector.prep_data(path, '/HistGradientBoostingClassifier_top8_downsample_cv_proba.npy.gz')
 
-    x_data = data[:10000]
-    y_true_labels = true_labels[:10000]
+    x_data = data[:1000]
+    y_true_labels = true_labels[:1000]
 
-    weights = init_weights(rand=False)
+    weights = init_weights(equal=False)
     
     # PIPELINE rank once:
     '''
@@ -171,13 +169,13 @@ def main():
     
     # PSO
     data, true_labels = pipeline_connector.prep_data(path, '/HistGradientBoostingClassifier_top8_downsample_cv_proba.npy.gz')
-    weights = init_weights(rand=True)
-    bounds = [(-10.0, 10.0), (-10.0, 10.0), (-10.0, 10.0)]
-    num_particles = 5
-    maxiter = 5
+    weights = init_weights(equal=True)
+    bounds = [(-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0)]
+    num_particles = 10
+    maxiter = 7
     print('PSO initialized with weights: ', weights)
     pso_summary = PSO.PSO.particle_swarm_optimization(fitness, weights, bounds, num_particles, maxiter, data, true_labels)
-    f = open('pso_summary.pkl', 'wb')
+    f = open('pso_summary2.pkl', 'wb')
     pickle.dump(pso_summary,f)
     f.close()
     
